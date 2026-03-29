@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Garmin auth tokens
+.garth/
+
+# Local database
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# IDE
+.vscode/settings.json
+.idea/

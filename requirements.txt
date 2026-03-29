@@ -1,0 +1,6 @@
+garminconnect
+garth
+streamlit
+plotly
+pandas
+python-dotenv
