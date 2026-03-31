@@ -8,6 +8,7 @@ import Health     from "./pages/Health";
 import Wrapped    from "./pages/Wrapped";
 import Goals      from "./pages/Goals";
 import Compare    from "./pages/Compare";
+import Cards      from "./pages/Cards";
 import Export     from "./pages/Export";
 import Settings   from "./pages/Settings";
 import Sync       from "./pages/Sync";
@@ -25,6 +26,7 @@ function App() {
             <NavLink to="/health">Health</NavLink>
             <NavLink to="/goals">Goals</NavLink>
             <NavLink to="/wrapped">Wrapped</NavLink>
+            <NavLink to="/cards">Cards</NavLink>
             <NavLink to="/compare">Compare</NavLink>
             <NavLink to="/export">Export</NavLink>
             <NavLink to="/sync">Sync</NavLink>
@@ -38,6 +40,7 @@ function App() {
               <Route path="/health"     element={<Health />} />
               <Route path="/goals"      element={<Goals />} />
               <Route path="/wrapped"    element={<Wrapped />} />
+              <Route path="/cards"      element={<Cards />} />
               <Route path="/compare"    element={<Compare />} />
               <Route path="/export"     element={<Export />} />
               <Route path="/settings"   element={<Settings />} />

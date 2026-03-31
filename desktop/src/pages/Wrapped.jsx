@@ -3,9 +3,9 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie,
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useUnits, useChartTheme } from "../SettingsContext";
-import { AllStatsCard, HeroCard, ActivityCard, StepsCard, ScaleCard, ConsistencyCard } from "../components/ShareCards";
 
 const LIME="#c8f135", RED="#ff4545", PURPLE="#7b61ff";
 const fmtType = (t) => t ? t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "—";
@@ -29,6 +29,7 @@ export default function Wrapped() {
 
   const { metric, mToDist, mToElev, distUnit, marathonDist, earthCirc } = useUnits();
   const ct = useChartTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -209,68 +210,23 @@ export default function Wrapped() {
           </div>
         </>}
 
-        {/* Share Cards */}
-        <SectionHeader label="Share Your Stats" />
-        <p style={{ fontSize: "0.8rem", color: "var(--sub)", marginBottom: 24, marginTop: -8 }}>
-          1080×1080px PNG — ready for Instagram, Twitter, or wherever.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 24, marginBottom: 48 }}>
-          <AllStatsCard
-            year={yearSel}
-            tagline={computed.tagline}
-            n={computed.n}
-            dist={computed.dist}
-            hrs={computed.hrs}
-            cals={computed.cals}
-            distUnit={distUnit}
-            totalSteps={computed.totalSteps}
-            avgSteps={computed.avgSteps}
-            bestSteps={computed.bestSteps}
-            elev={computed.elev}
-            elevUnit={distUnit === "mi" ? "ft" : "m"}
-            marathonDist={marathonDist}
-            earthCirc={earthCirc}
-            monthCounts={computed.monthCounts}
-            dayCounts={computed.dayCounts}
-            avgSleep={computed.avgSleep}
-            avgScore={computed.avgScore}
-          />
-          <HeroCard
-            year={yearSel}
-            tagline={computed.tagline}
-          />
-          <ActivityCard
-            year={yearSel}
-            n={computed.n}
-            dist={computed.dist}
-            hrs={computed.hrs}
-            cals={computed.cals}
-            distUnit={distUnit}
-          />
-          <StepsCard
-            year={yearSel}
-            totalSteps={computed.totalSteps}
-            avgSteps={computed.avgSteps}
-            bestSteps={computed.bestSteps}
-          />
-          <ScaleCard
-            year={yearSel}
-            dist={computed.dist}
-            elevElev={computed.elev}
-            marathonDist={marathonDist}
-            earthCirc={earthCirc}
-            distUnit={distUnit}
-            elevUnit={distUnit === "mi" ? "ft" : "m"}
-          />
-          <ConsistencyCard
-            year={yearSel}
-            n={computed.n}
-            monthCounts={computed.monthCounts}
-            dayCounts={computed.dayCounts}
-          />
+        {/* Share CTA */}
+        <div style={{ marginTop: 48, marginBottom: 32, display: "flex", alignItems: "center",
+          justifyContent: "space-between", padding: "24px 28px",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4 }}>
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Share your {yearSel}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--sub)" }}>
+              Export 1080px cards for Instagram, Twitter, or anywhere else.
+            </div>
+          </div>
+          <button onClick={() => navigate("/cards")} className="btn"
+            style={{ fontSize: "0.85rem", padding: "9px 22px", whiteSpace: "nowrap" }}>
+            Make Cards →
+          </button>
         </div>
 
-        <div style={{marginTop:80,paddingTop:28,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
+        <div style={{paddingTop:28,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
           <span style={{fontSize:"0.55rem",letterSpacing:5,color:"var(--border)",textTransform:"uppercase"}}>Garmin Wrapped · {yearSel}</span>
           <span style={{fontSize:"0.55rem",letterSpacing:5,color:"var(--border)",textTransform:"uppercase"}}>Keep Moving</span>
         </div>
