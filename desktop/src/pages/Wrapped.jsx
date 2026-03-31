@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { api } from "../api";
 import { useUnits, useChartTheme } from "../SettingsContext";
-import { HeroCard, ActivityCard, StepsCard, ScaleCard, ConsistencyCard } from "../components/ShareCards";
+import { AllStatsCard, HeroCard, ActivityCard, StepsCard, ScaleCard, ConsistencyCard } from "../components/ShareCards";
 
 const LIME="#c8f135", RED="#ff4545", PURPLE="#7b61ff";
 const fmtType = (t) => t ? t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "—";
@@ -215,6 +215,26 @@ export default function Wrapped() {
           1080×1080px PNG — ready for Instagram, Twitter, or wherever.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 24, marginBottom: 48 }}>
+          <AllStatsCard
+            year={yearSel}
+            tagline={computed.tagline}
+            n={computed.n}
+            dist={computed.dist}
+            hrs={computed.hrs}
+            cals={computed.cals}
+            distUnit={distUnit}
+            totalSteps={computed.totalSteps}
+            avgSteps={computed.avgSteps}
+            bestSteps={computed.bestSteps}
+            elev={computed.elev}
+            elevUnit={distUnit === "mi" ? "ft" : "m"}
+            marathonDist={marathonDist}
+            earthCirc={earthCirc}
+            monthCounts={computed.monthCounts}
+            dayCounts={computed.dayCounts}
+            avgSleep={computed.avgSleep}
+            avgScore={computed.avgScore}
+          />
           <HeroCard
             year={yearSel}
             tagline={computed.tagline}
