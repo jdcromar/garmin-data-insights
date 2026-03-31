@@ -4,14 +4,53 @@ import {
   Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import { api } from "../api";
+import { useChartTheme } from "../SettingsContext";
 
 function fmt(d) { return new Date(d).toLocaleDateString("en-US", {month:"short", day:"numeric"}); }
+
+const CHART_DAYS = 180;
+
+function SkeletonKpiGrid({ count = 3 }) {
+  return (
+    <div className="kpi-grid" style={{ marginBottom: 32 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div className="kpi" key={i}>
+          <div className="skeleton skeleton-label" />
+          <div className="skeleton skeleton-kpi" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonCard({ height = 240 }) {
+  return (
+    <div className="card">
+      <div className="skeleton skeleton-label" style={{ width: 120, marginBottom: 16 }} />
+      <div className="skeleton skeleton-chart" style={{ height }} />
+    </div>
+  );
+}
+
+function HealthSkeleton() {
+  return (
+    <div>
+      <h1>Health</h1>
+      <SkeletonKpiGrid count={3} />
+      <SkeletonCard height={240} />
+      <SkeletonCard height={200} />
+      <SkeletonKpiGrid count={2} />
+      <SkeletonCard height={220} />
+    </div>
+  );
+}
 
 export default function Health() {
   const [sleep, setSleep] = useState([]);
   const [hrv, setHrv]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const ct = useChartTheme();
 
   useEffect(() => {
     Promise.all([api.sleep(), api.hrv()])
@@ -19,16 +58,17 @@ export default function Health() {
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
-  if (loading) return <p className="loading">Loading…</p>;
+  if (loading) return <HealthSkeleton />;
   if (error)   return <p className="error">Error: {error}</p>;
 
-  const sleepData = sleep.map(d => ({
+  const sleepAll = sleep.map(d => ({
     date: d.date,
     "Deep Sleep":  d.deep_secs  ? +(d.deep_secs  /3600).toFixed(2) : null,
     "REM Sleep":   d.rem_secs   ? +(d.rem_secs   /3600).toFixed(2) : null,
     "Light Sleep": d.light_secs ? +(d.light_secs /3600).toFixed(2) : null,
     score: d.score,
   }));
+  const sleepData = sleepAll.slice(-CHART_DAYS);
 
   const avgSleep = sleep.length
     ? (sleep.reduce((s,d)=>s+(d.duration_secs||0),0)/sleep.length/3600).toFixed(1) : "—";
@@ -37,11 +77,13 @@ export default function Health() {
   const avgRem = sleep.length
     ? (sleep.reduce((s,d)=>s+(d.rem_secs||0),0)/sleep.length/3600).toFixed(1) : "—";
 
-  const hrvData = hrv.map(d => ({
+  const hrvAll = hrv.map(d => ({
     date: d.date,
-    "Weekly Average":   d.weekly_avg,
+    "Weekly Average":     d.weekly_avg,
     "Last Night Average": d.last_night_avg,
   }));
+  const hrvData = hrvAll.slice(-CHART_DAYS);
+
   const avgWeeklyHrv = hrv.filter(d=>d.weekly_avg).length
     ? Math.round(hrv.reduce((s,d)=>s+(d.weekly_avg||0),0)/hrv.filter(d=>d.weekly_avg).length) : "—";
   const avgNightHrv = hrv.filter(d=>d.last_night_avg).length
@@ -59,13 +101,13 @@ export default function Health() {
         </div>
 
         <div className="card">
-          <h2>Sleep Stages</h2>
+          <h2>Sleep Stages <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={sleepData} margin={{top:8,right:8,bottom:0,left:0}}>
-              <XAxis dataKey="date" tickFormatter={fmt} tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
-              <YAxis tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} width={35} unit="h"/>
-              <CartesianGrid stroke="#1a1a1a" vertical={false}/>
-              <Tooltip contentStyle={{background:"#111",border:"1px solid #222",borderRadius:4}} labelFormatter={d=>new Date(d).toLocaleDateString()} formatter={v=>v?v.toFixed(1)+" hrs":"—"}/>
+              <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
+              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={35} unit="h"/>
+              <CartesianGrid stroke={ct.gridColor} vertical={false}/>
+              <Tooltip {...ct.tooltip} labelFormatter={d=>new Date(d).toLocaleDateString()} formatter={v=>v?v.toFixed(1)+" hrs":"—"}/>
               <Bar dataKey="Deep Sleep"  stackId="s" fill="#1f3a6e" radius={[0,0,0,0]}/>
               <Bar dataKey="REM Sleep"   stackId="s" fill="#4a90d9"/>
               <Bar dataKey="Light Sleep" stackId="s" fill="#a8c8f0" radius={[2,2,0,0]}/>
@@ -74,13 +116,13 @@ export default function Health() {
         </div>
 
         <div className="card">
-          <h2>Sleep Score</h2>
+          <h2>Sleep Score <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={sleepData}>
-              <XAxis dataKey="date" tickFormatter={fmt} tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
-              <YAxis tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} width={35}/>
-              <CartesianGrid stroke="#1a1a1a" vertical={false}/>
-              <Tooltip contentStyle={{background:"#111",border:"1px solid #222",borderRadius:4}} labelFormatter={d=>new Date(d).toLocaleDateString()}/>
+              <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
+              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={35}/>
+              <CartesianGrid stroke={ct.gridColor} vertical={false}/>
+              <Tooltip {...ct.tooltip} labelFormatter={d=>new Date(d).toLocaleDateString()}/>
               <Line type="monotone" dataKey="score" stroke="#c8f135" dot={false} strokeWidth={1.5}/>
             </LineChart>
           </ResponsiveContainer>
@@ -94,13 +136,13 @@ export default function Health() {
         </div>
 
         <div className="card">
-          <h2>HRV</h2>
+          <h2>HRV <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={hrvData}>
-              <XAxis dataKey="date" tickFormatter={fmt} tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
-              <YAxis tick={{fill:"#555",fontSize:11}} axisLine={false} tickLine={false} width={40} unit=" ms"/>
-              <CartesianGrid stroke="#1a1a1a" vertical={false}/>
-              <Tooltip contentStyle={{background:"#111",border:"1px solid #222",borderRadius:4}} labelFormatter={d=>new Date(d).toLocaleDateString()} formatter={v=>v?Math.round(v)+" ms":"—"}/>
+              <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
+              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={40} unit=" ms"/>
+              <CartesianGrid stroke={ct.gridColor} vertical={false}/>
+              <Tooltip {...ct.tooltip} labelFormatter={d=>new Date(d).toLocaleDateString()} formatter={v=>v?Math.round(v)+" ms":"—"}/>
               <Line type="monotone" dataKey="Weekly Average"     stroke="#c8f135" dot={false} strokeWidth={1.5}/>
               <Line type="monotone" dataKey="Last Night Average" stroke="#4a90d9" dot={false} strokeWidth={1.5}/>
             </LineChart>
