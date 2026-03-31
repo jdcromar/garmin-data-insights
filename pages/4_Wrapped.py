@@ -64,6 +64,7 @@ if not activities.empty:
     activities["start_time"]   = pd.to_datetime(activities["start_time"])
     activities["month"]        = activities["start_time"].dt.month_name()
     activities["weekday"]      = activities["start_time"].dt.day_name()
+    activities["activity_type"] = activities["activity_type"].str.replace("_", " ", regex=False).str.title()
 
     n      = len(activities)
     dist   = activities["distance_mi"].sum()

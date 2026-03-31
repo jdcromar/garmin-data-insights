@@ -16,6 +16,7 @@ if df.empty:
 df["start_time"] = pd.to_datetime(df["start_time"])
 df["distance_mi"] = (df["distance_meters"] / 1609.344).round(2)
 df["duration_min"] = (df["duration_secs"] / 60).round(1)
+df["activity_type"] = df["activity_type"].str.replace("_", " ", regex=False).str.title()
 
 # --- Filters ---
 col_f1, col_f2 = st.columns(2)
@@ -59,8 +60,9 @@ with col_b:
     st.plotly_chart(fig2, use_container_width=True)
 
 st.subheader("Activity Log")
+filtered["elevation_ft"] = (filtered["elevation_gain"] * 3.28084).round(0)
 st.dataframe(
-    filtered[["start_time", "activity_type", "distance_mi", "duration_min", "calories", "avg_hr", "elevation_gain"]]
+    filtered[["start_time", "activity_type", "distance_mi", "duration_min", "calories", "avg_hr", "elevation_ft"]]
     .rename(columns={
         "start_time": "Date",
         "activity_type": "Type",
@@ -68,7 +70,7 @@ st.dataframe(
         "duration_min": "Duration (min)",
         "calories": "Calories",
         "avg_hr": "Avg HR",
-        "elevation_gain": "Elevation Gain (m)",
+        "elevation_ft": "Elevation Gain (ft)",
     }),
     use_container_width=True,
 )
