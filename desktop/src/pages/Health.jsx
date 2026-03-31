@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
   Tooltip, ResponsiveContainer, CartesianGrid,
@@ -8,7 +8,7 @@ import { useChartTheme } from "../SettingsContext";
 
 function fmt(d) { return new Date(d).toLocaleDateString("en-US", {month:"short", day:"numeric"}); }
 
-const CHART_DAYS = 180;
+// ── Skeleton ────────────────────────────────────────────────────────────────
 
 function SkeletonKpiGrid({ count = 3 }) {
   return (
@@ -45,12 +45,84 @@ function HealthSkeleton() {
   );
 }
 
+// ── Range filter bar ─────────────────────────────────────────────────────────
+
+function RangeBar({ years, mode, setMode, from, setFrom, to, setTo }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28, flexWrap:"wrap" }}>
+      <select
+        value={mode}
+        onChange={e => setMode(e.target.value)}
+        style={{
+          background:"var(--surface)", color:"var(--text)",
+          border:"1px solid var(--border)", borderRadius:4,
+          padding:"6px 10px", fontSize:"0.85rem", cursor:"pointer",
+        }}
+      >
+        <option value="all">All time</option>
+        {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
+        <option value="custom">Custom range</option>
+      </select>
+
+      {mode === "custom" && <>
+        <input
+          type="date" value={from} onChange={e => setFrom(e.target.value)}
+          style={{
+            background:"var(--surface)", color:"var(--text)",
+            border:"1px solid var(--border)", borderRadius:4,
+            padding:"6px 10px", fontSize:"0.85rem",
+          }}
+        />
+        <span style={{ color:"var(--muted)", fontSize:"0.85rem" }}>to</span>
+        <input
+          type="date" value={to} onChange={e => setTo(e.target.value)}
+          style={{
+            background:"var(--surface)", color:"var(--text)",
+            border:"1px solid var(--border)", borderRadius:4,
+            padding:"6px 10px", fontSize:"0.85rem",
+          }}
+        />
+      </>}
+    </div>
+  );
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function filterByRange(rows, mode, from, to) {
+  if (mode === "all") return rows;
+  if (mode === "custom") {
+    if (!from && !to) return rows;
+    return rows.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
+  }
+  // year mode
+  return rows.filter(r => r.date.startsWith(mode));
+}
+
+function avg(arr, key, divisor = 1) {
+  const valid = arr.filter(d => d[key]);
+  if (!valid.length) return "—";
+  return (valid.reduce((s, d) => s + d[key], 0) / valid.length / divisor).toFixed(1);
+}
+
+function avgInt(arr, key) {
+  const valid = arr.filter(d => d[key]);
+  if (!valid.length) return "—";
+  return Math.round(valid.reduce((s, d) => s + d[key], 0) / valid.length);
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+
 export default function Health() {
   const [sleep, setSleep] = useState([]);
   const [hrv, setHrv]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
   const ct = useChartTheme();
+
+  const [mode, setMode]   = useState("all");
+  const [from, setFrom]   = useState("");
+  const [to, setTo]       = useState("");
 
   useEffect(() => {
     Promise.all([api.sleep(), api.hrv()])
@@ -58,42 +130,51 @@ export default function Health() {
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
-  if (loading) return <HealthSkeleton />;
-  if (error)   return <p className="error">Error: {error}</p>;
+  const years = useMemo(() => {
+    const set = new Set();
+    sleep.forEach(d => set.add(d.date.slice(0, 4)));
+    hrv.forEach(d => set.add(d.date.slice(0, 4)));
+    return [...set].sort((a, b) => b - a);   // newest first
+  }, [sleep, hrv]);
 
-  const sleepAll = sleep.map(d => ({
+  const sleepFiltered = useMemo(() => filterByRange(sleep, mode, from, to), [sleep, mode, from, to]);
+  const hrvFiltered   = useMemo(() => filterByRange(hrv,   mode, from, to), [hrv,   mode, from, to]);
+
+  const sleepData = useMemo(() => sleepFiltered.map(d => ({
     date: d.date,
     "Deep Sleep":  d.deep_secs  ? +(d.deep_secs  /3600).toFixed(2) : null,
     "REM Sleep":   d.rem_secs   ? +(d.rem_secs   /3600).toFixed(2) : null,
     "Light Sleep": d.light_secs ? +(d.light_secs /3600).toFixed(2) : null,
     score: d.score,
-  }));
-  const sleepData = sleepAll.slice(-CHART_DAYS);
+  })), [sleepFiltered]);
 
-  const avgSleep = sleep.length
-    ? (sleep.reduce((s,d)=>s+(d.duration_secs||0),0)/sleep.length/3600).toFixed(1) : "—";
-  const avgScore = sleep.length
-    ? Math.round(sleep.reduce((s,d)=>s+(d.score||0),0)/sleep.filter(d=>d.score).length) : "—";
-  const avgRem = sleep.length
-    ? (sleep.reduce((s,d)=>s+(d.rem_secs||0),0)/sleep.length/3600).toFixed(1) : "—";
-
-  const hrvAll = hrv.map(d => ({
+  const hrvData = useMemo(() => hrvFiltered.map(d => ({
     date: d.date,
     "Weekly Average":     d.weekly_avg,
     "Last Night Average": d.last_night_avg,
-  }));
-  const hrvData = hrvAll.slice(-CHART_DAYS);
+  })), [hrvFiltered]);
 
-  const avgWeeklyHrv = hrv.filter(d=>d.weekly_avg).length
-    ? Math.round(hrv.reduce((s,d)=>s+(d.weekly_avg||0),0)/hrv.filter(d=>d.weekly_avg).length) : "—";
-  const avgNightHrv = hrv.filter(d=>d.last_night_avg).length
-    ? Math.round(hrv.reduce((s,d)=>s+(d.last_night_avg||0),0)/hrv.filter(d=>d.last_night_avg).length) : "—";
+  if (loading) return <HealthSkeleton />;
+  if (error)   return <p className="error">Error: {error}</p>;
+
+  const avgSleep    = avg(sleepFiltered,    "duration_secs", 3600);
+  const avgScore    = avgInt(sleepFiltered, "score");
+  const avgRem      = avg(sleepFiltered,    "rem_secs", 3600);
+  const avgWeeklyHrv = avgInt(hrvFiltered,  "weekly_avg");
+  const avgNightHrv  = avgInt(hrvFiltered,  "last_night_avg");
 
   return (
     <div>
       <h1>Health</h1>
 
-      {sleep.length > 0 && <>
+      <RangeBar
+        years={years}
+        mode={mode} setMode={setMode}
+        from={from} setFrom={setFrom}
+        to={to}     setTo={setTo}
+      />
+
+      {sleepFiltered.length > 0 && <>
         <div className="kpi-grid">
           <div className="kpi"><div className="kpi-label">Avg Sleep</div><div className="kpi-value" style={{color:"#7b61ff"}}>{avgSleep} <span style={{fontSize:"1rem",color:"#555"}}>hrs</span></div></div>
           <div className="kpi"><div className="kpi-label">Avg Sleep Score</div><div className="kpi-value">{avgScore}</div></div>
@@ -101,7 +182,7 @@ export default function Health() {
         </div>
 
         <div className="card">
-          <h2>Sleep Stages <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
+          <h2>Sleep Stages</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={sleepData} margin={{top:8,right:8,bottom:0,left:0}}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
@@ -116,7 +197,7 @@ export default function Health() {
         </div>
 
         <div className="card">
-          <h2>Sleep Score <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
+          <h2>Sleep Score</h2>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={sleepData}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
@@ -129,14 +210,14 @@ export default function Health() {
         </div>
       </>}
 
-      {hrv.length > 0 && <>
+      {hrvFiltered.length > 0 && <>
         <div className="kpi-grid" style={{marginTop:32}}>
           <div className="kpi"><div className="kpi-label">Avg Weekly HRV</div><div className="kpi-value">{avgWeeklyHrv} <span style={{fontSize:"1rem",color:"#555"}}>ms</span></div></div>
           <div className="kpi"><div className="kpi-label">Avg Last Night HRV</div><div className="kpi-value" style={{color:"#c8f135"}}>{avgNightHrv} <span style={{fontSize:"1rem",color:"#555"}}>ms</span></div></div>
         </div>
 
         <div className="card">
-          <h2>HRV <span style={{fontSize:"0.7rem",fontWeight:400,color:"var(--muted)"}}>— last {CHART_DAYS} days</span></h2>
+          <h2>HRV</h2>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={hrvData}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
@@ -149,6 +230,10 @@ export default function Health() {
           </ResponsiveContainer>
         </div>
       </>}
+
+      {sleepFiltered.length === 0 && hrvFiltered.length === 0 && (
+        <p style={{ color:"var(--muted)", marginTop:40, textAlign:"center" }}>No data for this range.</p>
+      )}
     </div>
   );
 }
