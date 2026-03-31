@@ -60,4 +60,18 @@ def init_db():
                 last_night_5min_high REAL,
                 raw_json        TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS goals (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                metric      TEXT NOT NULL,
+                target      REAL NOT NULL,
+                year        INTEGER NOT NULL,
+                created_at  TEXT DEFAULT (date('now')),
+                UNIQUE(metric, year)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_activities_start ON activities(start_time);
+            CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date);
+            CREATE INDEX IF NOT EXISTS idx_sleep_date ON sleep(date);
+            CREATE INDEX IF NOT EXISTS idx_hrv_date ON hrv(date);
         """)
