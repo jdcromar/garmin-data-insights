@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { api } from "../api";
 import { useUnits, useChartTheme } from "../SettingsContext";
+import { HeroCard, ActivityCard, StepsCard, ScaleCard, ConsistencyCard } from "../components/ShareCards";
 
 const LIME="#c8f135", RED="#ff4545", PURPLE="#7b61ff";
 const fmtType = (t) => t ? t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "—";
@@ -207,6 +208,47 @@ export default function Wrapped() {
             <div className="kpi"><div className="kpi-label">Avg Sleep Score</div><div className="kpi-value">{computed.avgScore}</div></div>
           </div>
         </>}
+
+        {/* Share Cards */}
+        <SectionHeader label="Share Your Stats" />
+        <p style={{ fontSize: "0.8rem", color: "var(--sub)", marginBottom: 24, marginTop: -8 }}>
+          1080×1080px PNG — ready for Instagram, Twitter, or wherever.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 24, marginBottom: 48 }}>
+          <HeroCard
+            year={yearSel}
+            tagline={computed.tagline}
+          />
+          <ActivityCard
+            year={yearSel}
+            n={computed.n}
+            dist={computed.dist}
+            hrs={computed.hrs}
+            cals={computed.cals}
+            distUnit={distUnit}
+          />
+          <StepsCard
+            year={yearSel}
+            totalSteps={computed.totalSteps}
+            avgSteps={computed.avgSteps}
+            bestSteps={computed.bestSteps}
+          />
+          <ScaleCard
+            year={yearSel}
+            dist={computed.dist}
+            elevElev={computed.elev}
+            marathonDist={marathonDist}
+            earthCirc={earthCirc}
+            distUnit={distUnit}
+            elevUnit={distUnit === "mi" ? "ft" : "m"}
+          />
+          <ConsistencyCard
+            year={yearSel}
+            n={computed.n}
+            monthCounts={computed.monthCounts}
+            dayCounts={computed.dayCounts}
+          />
+        </div>
 
         <div style={{marginTop:80,paddingTop:28,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
           <span style={{fontSize:"0.55rem",letterSpacing:5,color:"var(--border)",textTransform:"uppercase"}}>Garmin Wrapped · {yearSel}</span>
