@@ -15,6 +15,9 @@
 }
 
 /* ── Light mode overrides ─────────────────────────────────────────────── */
+/* Date picker calendar icon visible in dark mode */
+input[type="date"] { color-scheme: dark; }
+
 [data-theme="light"] {
   --bg:      #f0f0f0;
   --surface: #ffffff;
@@ -22,10 +25,11 @@
   --muted:   #999999;
   --text:    #111111;
   --sub:     #666666;
+  --lime:    #3d6b00;  /* darkened for readability on light bg */
 }
 [data-theme="light"] .wrapped-hero .year { color: var(--text); }
 [data-theme="light"] .scale-cell .val    { color: var(--text); }
-[data-theme="light"] select { color-scheme: light; }
+[data-theme="light"] select              { color-scheme: light; }
 [data-theme="light"] input[type="date"]  { color-scheme: light; }
 
 body {

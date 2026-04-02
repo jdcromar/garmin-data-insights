@@ -239,6 +239,8 @@ export default function ActivityMap() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [filter, setFilter]         = useState("all");
+  const [dateFrom, setDateFrom]     = useState("");
+  const [dateTo,   setDateTo]       = useState("");
   const [selected, setSelected]     = useState(null);  // clicked activity
   const [route, setRoute]           = useState(null);  // fetched route data
   const [routeLoading, setRouteLoading] = useState(false);
@@ -256,10 +258,13 @@ export default function ActivityMap() {
     return [...s].sort();
   }, [locations]);
 
-  const filtered = useMemo(() =>
-    filter === "all" ? locations : locations.filter(l => l.activity_type === filter),
-    [locations, filter]
-  );
+  const filtered = useMemo(() => locations.filter(l => {
+    if (filter !== "all" && l.activity_type !== filter) return false;
+    const d = l.start_time?.slice(0, 10) || "";
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo   && d > dateTo)   return false;
+    return true;
+  }), [locations, filter, dateFrom, dateTo]);
 
   const center = useMemo(() => {
     if (!filtered.length) return [39.5, -98.35];
@@ -308,23 +313,52 @@ export default function ActivityMap() {
         <div style={{
           background: "rgba(18,18,18,0.88)", backdropFilter: "blur(6px)",
           border: "1px solid var(--border)", borderRadius: 6,
-          padding: "10px 14px", display: "flex", gap: 10, alignItems: "center",
+          padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8,
         }}>
-          <span style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600 }}>
-            {filtered.length} activities
-          </span>
-          <select
-            value={filter}
-            onChange={e => { setFilter(e.target.value); handleClose(); }}
-            style={{
-              background: "var(--surface)", color: "var(--text)",
-              border: "1px solid var(--border)", borderRadius: 4,
-              padding: "4px 8px", fontSize: "0.8rem", cursor: "pointer",
-            }}
-          >
-            <option value="all">All types</option>
-            {types.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-          </select>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#888", fontWeight: 600 }}>
+              {filtered.length} Activities
+            </span>
+            <select
+              value={filter}
+              onChange={e => { setFilter(e.target.value); handleClose(); }}
+              style={{
+                background: "#1a1a1a", color: "#e2e2e2",
+                border: "1px solid #333", borderRadius: 4,
+                padding: "4px 8px", fontSize: "0.78rem", cursor: "pointer",
+                textTransform: "uppercase", letterSpacing: "0.05em",
+              }}
+            >
+              <option value="all">ALL TYPES</option>
+              {types.map(t => (
+                <option key={t} value={t}>{t.replace(/_/g, " ").toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#666", minWidth: 28 }}>From</span>
+            <input
+              type="date" value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); handleClose(); }}
+              style={{ background: "#1a1a1a", color: "#e2e2e2", border: "1px solid #333", borderRadius: 4, padding: "3px 6px", fontSize: "0.75rem", colorScheme: "dark" }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#666", minWidth: 28 }}>To</span>
+            <input
+              type="date" value={dateTo}
+              onChange={e => { setDateTo(e.target.value); handleClose(); }}
+              style={{ background: "#1a1a1a", color: "#e2e2e2", border: "1px solid #333", borderRadius: 4, padding: "3px 6px", fontSize: "0.75rem", colorScheme: "dark" }}
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              style={{ background: "none", border: "none", color: "#888", fontSize: "0.72rem", cursor: "pointer", textAlign: "left", padding: 0, letterSpacing: "0.05em" }}
+            >
+              ✕ Clear dates
+            </button>
+          )}
         </div>
 
         {/* Legend */}
@@ -334,7 +368,7 @@ export default function ActivityMap() {
           padding: "8px 12px", display: "flex", flexDirection: "column", gap: 5,
         }}>
           {Object.entries(TYPE_COLORS).filter(([k]) => k !== "other").map(([k, c]) => (
-            <div key={k} style={{ display: "flex", gap: 7, alignItems: "center", fontSize: "0.72rem", color: "#ccc" }}>
+            <div key={k} style={{ display: "flex", gap: 7, alignItems: "center", fontSize: "0.68rem", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: c, flexShrink: 0 }} />
               {k.replace(/_/g, " ")}
             </div>

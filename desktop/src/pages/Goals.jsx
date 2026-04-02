@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
+import { RadialBarChart, RadialBar } from "recharts";
 import { api } from "../api";
 
 const LIME = "#c8f135", RED = "#ff4545", PURPLE = "#7b61ff", BLUE = "#4a90d9", ORANGE = "#f39c12";
@@ -23,35 +23,33 @@ function GoalCard({ metric, target, actual, id, color, onDelete }) {
       <button
         onClick={() => onDelete(id)}
         style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none",
-          color: "#444", cursor: "pointer", fontSize: "1rem", lineHeight: 1 }}>
+          color: "var(--muted)", cursor: "pointer", fontSize: "1rem", lineHeight: 1 }}>
         ×
       </button>
-      <div style={{ fontSize: "0.65rem", letterSpacing: 3, color: "#555", textTransform: "uppercase", marginBottom: 12 }}>
+      <div style={{ fontSize: "0.65rem", letterSpacing: 3, color: "var(--muted)", textTransform: "uppercase", marginBottom: 12 }}>
         {m.label}
       </div>
 
       {/* Progress ring */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}>
-          <ResponsiveContainer width={80} height={80}>
-            <RadialBarChart cx={40} cy={40} innerRadius={28} outerRadius={38}
-              startAngle={90} endAngle={-270} data={[{ value: pct, fill: color }]}>
-              <RadialBar dataKey="value" cornerRadius={4} background={{ fill: "#1a1a1a" }} />
-            </RadialBarChart>
-          </ResponsiveContainer>
+          <RadialBarChart width={80} height={80} cx={40} cy={40} innerRadius={28} outerRadius={38}
+            startAngle={90} endAngle={-270} data={[{ value: pct, fill: color }]}>
+            <RadialBar dataKey="value" cornerRadius={4} background={{ fill: "var(--border)" }} />
+          </RadialBarChart>
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center",
             justifyContent: "center", fontSize: "0.85rem", fontWeight: 700, color }}>
             {pct}%
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "white", lineHeight: 1 }}>
+          <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text)", lineHeight: 1 }}>
             {fmtVal(actual)}
           </div>
-          <div style={{ fontSize: "0.75rem", color: "#555", marginTop: 4 }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: 4 }}>
             of {fmtVal(target)} {m.unit}
           </div>
-          <div style={{ background: "#1a1a1a", borderRadius: 3, height: 4, marginTop: 10 }}>
+          <div style={{ background: "var(--border)", borderRadius: 3, height: 4, marginTop: 10 }}>
             <div style={{ background: color, width: `${pct}%`, height: 4, borderRadius: 3, transition: "width 0.4s" }} />
           </div>
         </div>
@@ -142,9 +140,8 @@ export default function Goals() {
                   type="number"
                   value={form[m.key] ?? m.default}
                   onChange={e => setForm(f => ({ ...f, [m.key]: e.target.value }))}
-                  style={{ width: "100%", background: "#1a1a1a", border: "1px solid #2a2a2a",
-                    borderRadius: 4, padding: "8px 10px", color: "white", fontSize: "0.9rem",
-                    borderColor: PALETTE[i % PALETTE.length] }}
+                  style={{ width: "100%", background: "var(--bg)", border: `1px solid ${PALETTE[i % PALETTE.length]}`,
+                    borderRadius: 4, padding: "8px 10px", color: "var(--text)", fontSize: "0.9rem" }}
                 />
               </div>
             ))}
@@ -187,10 +184,10 @@ export default function Goals() {
                     return (
                       <div key={p.id}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ fontSize: "0.8rem", color: "#888" }}>{m.label}</span>
+                          <span style={{ fontSize: "0.8rem", color: "var(--sub)" }}>{m.label}</span>
                           <span style={{ fontSize: "0.8rem", color, fontWeight: 600 }}>{p.pct}%</span>
                         </div>
-                        <div style={{ background: "#1a1a1a", borderRadius: 3, height: 6 }}>
+                        <div style={{ background: "var(--border)", borderRadius: 3, height: 6 }}>
                           <div style={{ background: color, width: `${p.pct}%`, height: 6, borderRadius: 3, transition: "width 0.4s" }} />
                         </div>
                       </div>
