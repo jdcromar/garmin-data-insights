@@ -563,7 +563,7 @@ def activity_locations():
 
 # ── CSV Export ────────────────────────────────────────────────────────────────
 
-ALLOWED_TABLES = {"activities", "daily_stats", "sleep", "hrv"}
+ALLOWED_TABLES = {"activities", "daily_stats", "sleep", "hrv", "body_battery"}
 
 @app.get("/export/csv/{table}")
 def export_csv(table: str):

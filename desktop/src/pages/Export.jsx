@@ -7,7 +7,8 @@ const TABLES = [
   { key: "activities",  label: "Activities",   desc: "All workout sessions — type, distance, duration, HR, calories" },
   { key: "daily_stats", label: "Daily Stats",  desc: "Step counts, calories, heart rate by day" },
   { key: "sleep",       label: "Sleep",        desc: "Sleep duration, stages, and score per night" },
-  { key: "hrv",         label: "HRV",          desc: "Heart rate variability — weekly average and last-night readings" },
+  { key: "hrv",          label: "HRV",          desc: "Heart rate variability — weekly average and last-night readings" },
+  { key: "body_battery", label: "Body Battery", desc: "Daily high, low, charged, and drained body battery values" },
 ];
 
 export default function Export() {
