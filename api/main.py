@@ -392,6 +392,128 @@ def wrapped_multi(years_str: str):
     return result
 
 
+# ── Activity route (on-demand, cached) ───────────────────────────────────────
+
+@app.get("/activities/{activity_id}/route")
+def activity_route(activity_id: str):
+    import json as _json
+    # Return cached track if available
+    with get_conn() as conn:
+        cached = conn.execute(
+            "SELECT track_json FROM activity_tracks WHERE activity_id=?",
+            (activity_id,)
+        ).fetchone()
+        if cached:
+            return _json.loads(cached["track_json"])
+
+    # Fetch from Garmin
+    try:
+        client = get_client()
+        details = client.get_activity_details(activity_id, maxpoly=2000)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Garmin fetch failed: {e}")
+
+    # Metric indices (from metricDescriptors):
+    # 0=HR, 2=cumDist(m), 3=speed(m/s), 4=lng, 7=lat, 10=elev(m), 15=timestamp(ms)
+    IDX_HR   = 0
+    IDX_DIST = 2
+    IDX_SPD  = 3
+    IDX_LNG  = 4
+    IDX_LAT  = 7
+    IDX_ELEV = 10
+    IDX_TS   = 15
+
+    # Remap descriptor metricsIndex → position in the values array
+    descs = details.get("metricDescriptors", [])
+    KEY_IDX = {d["key"]: d["metricsIndex"] for d in descs}
+    IDX_HR   = KEY_IDX.get("directHeartRate",   IDX_HR)
+    IDX_DIST = KEY_IDX.get("sumDistance",        IDX_DIST)
+    IDX_SPD  = KEY_IDX.get("directSpeed",        IDX_SPD)
+    IDX_LNG  = KEY_IDX.get("directLongitude",    IDX_LNG)
+    IDX_LAT  = KEY_IDX.get("directLatitude",     IDX_LAT)
+    IDX_ELEV = KEY_IDX.get("directElevation",    IDX_ELEV)
+    IDX_TS   = KEY_IDX.get("directTimestamp",    IDX_TS)
+
+    points = []
+    for row in details.get("activityDetailMetrics", []):
+        vals = row.get("metrics", [])
+        def v(i):
+            return vals[i] if i < len(vals) else None
+        lat = v(IDX_LAT)
+        lng = v(IDX_LNG)
+        if lat is None or lng is None:
+            continue
+        # Skip clearly invalid coordinates
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            continue
+        spd = v(IDX_SPD)
+        points.append({
+            "lat":   round(lat, 6),
+            "lng":   round(lng, 6),
+            "hr":    v(IDX_HR),
+            "spd":   round(spd, 3) if spd is not None else None,   # m/s
+            "elev":  round(v(IDX_ELEV), 1) if v(IDX_ELEV) is not None else None,
+            "dist":  round(v(IDX_DIST), 1) if v(IDX_DIST) is not None else None,
+            "ts":    v(IDX_TS),
+        })
+
+    result = {"points": points}
+
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO activity_tracks(activity_id, track_json) VALUES(?,?)",
+            (activity_id, _json.dumps(result))
+        )
+
+    return result
+
+
+# ── Body Battery ─────────────────────────────────────────────────────────────
+
+@app.get("/body-battery")
+def body_battery():
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT date, high_value, low_value, charged, drained "
+            "FROM body_battery ORDER BY date"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ── Activity locations (for map) ──────────────────────────────────────────────
+
+@app.get("/activities/locations")
+def activity_locations():
+    """Return start lat/lng extracted from raw_json for map rendering."""
+    import json as _json
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT activity_id, activity_type, start_time, distance_meters, "
+            "duration_secs, raw_json FROM activities WHERE raw_json IS NOT NULL"
+        ).fetchall()
+    result = []
+    for r in rows:
+        try:
+            raw = _json.loads(r["raw_json"])
+            lat = (raw.get("startLatitude") or raw.get("beginLatitude")
+                   or raw.get("startLat") or raw.get("latitudeBegin"))
+            lng = (raw.get("startLongitude") or raw.get("beginLongitude")
+                   or raw.get("startLon") or raw.get("longitudeBegin"))
+            if lat and lng:
+                result.append({
+                    "activity_id":    r["activity_id"],
+                    "activity_type":  r["activity_type"],
+                    "start_time":     r["start_time"],
+                    "distance_meters": r["distance_meters"],
+                    "duration_secs":  r["duration_secs"],
+                    "lat": lat,
+                    "lng": lng,
+                })
+        except Exception:
+            pass
+    return result
+
+
 # ── CSV Export ────────────────────────────────────────────────────────────────
 
 ALLOWED_TABLES = {"activities", "daily_stats", "sleep", "hrv"}

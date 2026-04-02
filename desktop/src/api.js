@@ -41,4 +41,7 @@ export const api = {
   upsertGoal:     (metric, target, year) => post("/goals", { metric, target, year }),
   deleteGoal:     (id) => del(`/goals/${id}`),
   exportCsv:      (table) => `${BASE}/export/csv/${table}`,
+  activityRoute:  (id) => get(`/activities/${id}/route`),
+  bodyBattery:    () => get("/body-battery"),
+  locations:      () => get("/activities/locations"),
 };

@@ -116,9 +116,41 @@ def fetch_hrv(client: Garmin, start: date, end: date, on_progress: Optional[Call
             current += timedelta(days=1)
 
 
+def fetch_body_battery(client: Garmin, start: date, end: date, on_progress: Optional[Callable] = None):
+    """Fetch body battery data for a date range."""
+    current = start
+    with get_conn() as conn:
+        existing = {row[0] for row in conn.execute("SELECT date FROM body_battery").fetchall()}
+        while current <= end:
+            day = current.isoformat()
+            if day not in existing:
+                try:
+                    # Returns list of day-objects; request one day at a time
+                    data = client.get_body_battery(day, day)
+                    if data:
+                        item = data[0]
+                        charged = item.get("charged")
+                        drained = item.get("drained")
+                        # bodyBatteryValuesArray = [[timestamp_ms, level], ...]
+                        readings = item.get("bodyBatteryValuesArray") or []
+                        levels = [r[1] for r in readings if isinstance(r, list) and len(r) >= 2]
+                        high = max(levels) if levels else charged
+                        low  = min(levels) if levels else None
+                        conn.execute(
+                            "INSERT OR REPLACE INTO body_battery VALUES (?, ?, ?, ?, ?, ?)",
+                            (day, high, low, charged, drained, json.dumps(item))
+                        )
+                except Exception:
+                    pass  # body battery not available on all devices/days
+            if on_progress:
+                on_progress()
+            current += timedelta(days=1)
+
+
 def sync_all(client: Garmin, start: date, end: date, on_progress: Optional[Callable] = None):
     """Sync all data types for the given range."""
     fetch_activities(client, start, end, on_progress)
     fetch_daily_stats(client, start, end, on_progress)
     fetch_sleep(client, start, end, on_progress)
     fetch_hrv(client, start, end, on_progress)
+    fetch_body_battery(client, start, end, on_progress)

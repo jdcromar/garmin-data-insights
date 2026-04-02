@@ -3,8 +3,12 @@ import { createContext, useContext, useState, useEffect } from "react";
 const Ctx = createContext();
 
 export function SettingsProvider({ children }) {
-  const [unit,  setUnit]  = useState(() => localStorage.getItem("gd_unit")  || "imperial");
-  const [theme, setTheme] = useState(() => localStorage.getItem("gd_theme") || "dark");
+  const [unit,      setUnit]      = useState(() => localStorage.getItem("gd_unit")  || "imperial");
+  const [theme,     setTheme]     = useState(() => localStorage.getItem("gd_theme") || "dark");
+  const [hiddenNav, setHiddenNav] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("gd_hidden_nav") || "[]"); }
+    catch { return []; }
+  });
 
   useEffect(() => { localStorage.setItem("gd_unit", unit); }, [unit]);
 
@@ -13,13 +17,21 @@ export function SettingsProvider({ children }) {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    localStorage.setItem("gd_hidden_nav", JSON.stringify(hiddenNav));
+  }, [hiddenNav]);
+
   // Apply stored theme immediately on mount (before React paint)
   useEffect(() => {
     document.documentElement.setAttribute("data-theme",
       localStorage.getItem("gd_theme") || "dark");
   }, []);
 
-  return <Ctx.Provider value={{ unit, setUnit, theme, setTheme }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ unit, setUnit, theme, setTheme, hiddenNav, setHiddenNav }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export const useSettings = () => useContext(Ctx);
