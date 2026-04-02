@@ -19,10 +19,10 @@ function SectionHeader({ label }) {
   );
 }
 
-const AVAIL_YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+const AVAIL_YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
 export default function Compare() {
-  const [selected, setSelected] = useState([2025, 2024]);
+  const [selected, setSelected] = useState([2024, 2025]);
   const [data, setData]         = useState(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
