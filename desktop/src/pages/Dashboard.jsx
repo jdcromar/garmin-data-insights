@@ -1,358 +1,363 @@
-import { useEffect, useState } from "react";
-import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid, ReferenceLine,
-} from "recharts";
+import { useEffect, useState, useRef, useCallback } from "react";
+import GridLayout from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 import { api } from "../api";
-import { useUnits, useChartTheme } from "../SettingsContext";
+import { WIDGET_REGISTRY } from "../dashboard/widgets";
+import { PRESETS } from "../dashboard/presets";
 
-const LIME = "#c8f135", BLUE = "#4a90d9", RED = "#ff4545", PURPLE = "#7b61ff";
+const STORAGE_KEY = "gd_dashboard_v2";
+const COLS = 12;
+const ROW_H = 80;
+const GAP  = 12;
 
-function fmt(d) { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+const CAT_COLOR = { Metrics: "#c8f135", Charts: "#4a90d9", Health: "#7b61ff", Summaries: "#f39c12" };
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+}
+function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+function uid() { return "t_" + Math.random().toString(36).slice(2, 9); }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-function TrendBadge({ pct, inverse = false }) {
-  if (pct == null) return null;
-  const good = inverse ? pct < 0 : pct > 0;
-  const color = good ? LIME : RED;
-  const arrow = pct > 0 ? "↑" : "↓";
+function makeInitialState() {
+  const def = PRESETS.find(p => p.id === "default");
+  return { tabs: [{ id: "t_default", name: "Dashboard", layout: def.layout }], activeTabId: "t_default" };
+}
+
+// ── Widget renderer ───────────────────────────────────────────────────────────
+
+function WidgetRenderer({ id, data }) {
+  const def = WIDGET_REGISTRY.find(w => w.id === id);
+  if (!def) return <div style={{ color: "var(--muted)", fontSize: "0.8rem", padding: 12 }}>Unknown widget: {id}</div>;
+  const C = def.component;
+  return <C data={data} />;
+}
+
+// ── Library panel ─────────────────────────────────────────────────────────────
+
+function LibraryPanel({ onAdd, onClose, presentIds }) {
+  const categories = [...new Set(WIDGET_REGISTRY.map(w => w.category))];
   return (
-    <span style={{ fontSize: "0.7rem", color, marginLeft: 6, fontWeight: 600 }}>
-      {arrow}{Math.abs(pct)}%
-    </span>
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 900 }} />
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, width: 300,
+        background: "var(--surface)", borderLeft: "1px solid var(--border)",
+        zIndex: 901, overflowY: "auto", display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>Widget Library</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: "0 4px" }}>×</button>
+        </div>
+        <div style={{ overflowY: "auto", padding: "12px 12px 24px" }}>
+          {categories.map(cat => (
+            <div key={cat} style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: "0.58rem", letterSpacing: 3, textTransform: "uppercase", color: CAT_COLOR[cat] || "var(--sub)", marginBottom: 8, fontWeight: 700 }}>
+                {cat}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {WIDGET_REGISTRY.filter(w => w.category === cat).map(w => {
+                  const added = presentIds.includes(w.id);
+                  return (
+                    <div key={w.id} style={{
+                      padding: "8px 10px", borderRadius: 5, border: "1px solid var(--border)",
+                      background: "var(--bg)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                      opacity: added ? 0.45 : 1,
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>{w.title}</div>
+                        <div style={{ fontSize: "0.67rem", color: "var(--muted)", marginTop: 1, lineHeight: 1.3 }}>{w.desc}</div>
+                      </div>
+                      <button onClick={() => !added && onAdd(w.id)} disabled={added}
+                        style={{
+                          padding: "4px 10px", borderRadius: 4, flexShrink: 0,
+                          border: `1px solid ${added ? "var(--border)" : "#c8f135"}`,
+                          background: added ? "transparent" : "#c8f13518",
+                          color: added ? "var(--muted)" : "#c8f135",
+                          cursor: added ? "default" : "pointer", fontSize: "0.7rem", fontWeight: 600,
+                        }}>
+                        {added ? "Added" : "+ Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
-function ReadinessRing({ score, label }) {
-  if (score == null) return null;
-  const color = score >= 80 ? LIME : score >= 65 ? BLUE : score >= 45 ? "#f39c12" : RED;
-  const r = 32, circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-      <svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={40} cy={40} r={r} fill="none" stroke="#1e1e1e" strokeWidth={6} />
-        <circle cx={40} cy={40} r={r} fill="none" stroke={color} strokeWidth={6}
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
-      </svg>
-      <div style={{ marginTop: -60, textAlign: "center", pointerEvents: "none" }}>
-        <div style={{ fontSize: "1.1rem", fontWeight: 900, color }}>{score}</div>
-      </div>
-      <div style={{ marginTop: 24, fontSize: "0.7rem", letterSpacing: 2, color: "#666", textTransform: "uppercase" }}>{label}</div>
-    </div>
-  );
-}
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const [data, setData]         = useState([]);
-  const [insights, setInsights] = useState(null);
-  const [records, setRecords]   = useState(null);
-  const [readiness, setReadiness] = useState(null);
-  const [view, setView]         = useState("all");
-  const [year, setYear]         = useState(null);
-  const [month, setMonth]       = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [syncing, setSyncing]   = useState(false);
-  const [error, setError]       = useState(null);
+  // Data
+  const [dashData, setDashData] = useState({
+    dailyStats: [], activities: [], sleep: [], hrv: [], bodyBattery: [],
+    insights: null, records: null, readiness: null,
+  });
+  const [loading,  setLoading]  = useState(true);
+  const [syncing,  setSyncing]  = useState(false);
+  const [error,    setError]    = useState(null);
 
-  function fetchAll() {
-    return Promise.all([
-      api.dailyStats(),
+  // Layout
+  const [state, setState]         = useState(() => loadState() || makeInitialState());
+  const [editMode, setEditMode]   = useState(false);
+  const [showLib,  setShowLib]    = useState(false);
+  const [gridW,    setGridW]      = useState(0);
+  const containerRef = useRef(null);
+
+  const activeTab = state.tabs.find(t => t.id === state.activeTabId) || state.tabs[0];
+
+  // Measure container
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(e => setGridW(e[0].contentRect.width));
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Persist layout changes
+  useEffect(() => { saveState(state); }, [state]);
+
+  // Data fetch
+  const fetchAll = useCallback(() =>
+    Promise.all([
+      api.dailyStats().catch(() => []),
+      api.activities().catch(() => []),
+      api.sleep().catch(() => []),
+      api.hrv().catch(() => []),
+      api.bodyBattery().catch(() => []),
       api.insights().catch(() => null),
       api.records().catch(() => null),
       api.readiness().catch(() => null),
-    ]).then(([d, ins, rec, rdy]) => {
-      setData(d);
-      setInsights(ins);
-      setRecords(rec);
-      setReadiness(rdy);
+    ]).then(([dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness]) => {
+      setDashData({ dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness });
       setLoading(false);
-    }).catch(e => { setError(e.message); setLoading(false); });
-  }
+    }).catch(e => { setError(e.message); setLoading(false); }),
+  []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function syncToday() {
     setSyncing(true);
-    const today = todayStr();
-    try {
-      await api.sync(today, today);
-      await fetchAll();
-    } finally {
-      setSyncing(false);
-    }
+    try { await api.sync(todayStr(), todayStr()); await fetchAll(); }
+    finally { setSyncing(false); }
   }
 
-  const { mToDist, distUnit } = useUnits();
-  const ct = useChartTheme();
+  // Tab management
+  function addTab() {
+    const def = PRESETS.find(p => p.id === "default");
+    const t = { id: uid(), name: "New Tab", layout: def.layout };
+    setState(s => ({ tabs: [...s.tabs, t], activeTabId: t.id }));
+  }
+  function removeTab(id) {
+    if (state.tabs.length <= 1) return;
+    setState(s => {
+      const tabs = s.tabs.filter(t => t.id !== id);
+      return { tabs, activeTabId: s.activeTabId === id ? tabs[0].id : s.activeTabId };
+    });
+  }
+  function renameTab(id) {
+    const name = window.prompt("Tab name:", state.tabs.find(t => t.id === id)?.name || "");
+    if (name?.trim()) setState(s => ({ ...s, tabs: s.tabs.map(t => t.id === id ? { ...t, name: name.trim() } : t) }));
+  }
 
-  if (loading) return <p className="loading">Loading…</p>;
-  if (error)   return <p className="error">Error: {error}</p>;
-  if (!data.length) return <p className="loading">No data. Sync first.</p>;
+  // Widget management
+  function updateLayout(layout) {
+    setState(s => ({ ...s, tabs: s.tabs.map(t => t.id === s.activeTabId ? { ...t, layout } : t) }));
+  }
+  function addWidget(widgetId) {
+    const def = WIDGET_REGISTRY.find(w => w.id === widgetId);
+    if (!def || activeTab.layout.some(l => l.i === widgetId)) return;
+    updateLayout([...activeTab.layout, { i: widgetId, x: 0, y: Infinity, w: def.defaultW, h: def.defaultH, minW: def.minW, minH: def.minH }]);
+  }
+  function removeWidget(widgetId) { updateLayout(activeTab.layout.filter(l => l.i !== widgetId)); }
+  function applyPreset(presetId) {
+    const p = PRESETS.find(p => p.id === presetId);
+    if (!p) return;
+    if (window.confirm(`Replace layout with "${p.name}" preset?`)) updateLayout(p.layout);
+  }
 
-  const latest  = [...data].reverse().find(d => d.steps != null || d.total_calories != null) || data[data.length - 1];
-  const fmtKpi  = (val) => val != null ? Math.round(val).toLocaleString() : "—";
-  const years   = [...new Set(data.map(d => new Date(d.date).getFullYear()))].sort((a, b) => b - a);
-  const months  = year
-    ? [...new Set(data.filter(d => new Date(d.date).getFullYear() === year).map(d => new Date(d.date).getMonth() + 1))].sort((a, b) => a - b)
-    : [];
+  if (loading) return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h1 style={{ margin: 0 }}>Dashboard</h1>
+      </div>
+      <p className="loading">Loading…</p>
+    </div>
+  );
+  if (error) return <p className="error">Error: {error}</p>;
 
-  let plotData = data;
-  if (view === "year" && year)  plotData = data.filter(d => new Date(d.date).getFullYear() === year);
-  if (view === "month" && year && month)
-    plotData = data.filter(d => { const dt = new Date(d.date); return dt.getFullYear() === year && dt.getMonth() + 1 === month; });
-
-  const peakSteps = Math.max(...plotData.map(d => d.steps || 0));
-  const top10Threshold = plotData.length > 0
-    ? [...plotData].sort((a, b) => (b.steps || 0) - (a.steps || 0)).slice(0, 10).at(-1)?.steps || 0
-    : 0;
-
-  const yearBoundaries = view === "all"
-    ? years.slice(0, -1).map(y => `${y + 1}-01-01`).filter(d => plotData.some(r => r.date >= d))
-    : [];
-
-  const calData = data
-    .filter(d => (d.total_calories || 0) <= 10000)
-    .map(d => ({ date: d.date, "Active Calories": d.active_calories, "Total Calories": d.total_calories }));
-
-  const hrData = data.map(d => ({
-    date: d.date,
-    "Resting Heart Rate": d.resting_hr,
-    "Average Heart Rate": d.avg_hr,
-  }));
-
-  // YoY — avg steps per year
-  const yoyMap = {};
-  data.forEach(d => {
-    const yr = new Date(d.date).getFullYear();
-    if (!yoyMap[yr]) yoyMap[yr] = { count: 0, sum: 0 };
-    if (d.steps) { yoyMap[yr].sum += d.steps; yoyMap[yr].count++; }
-  });
-  const yoyData = Object.entries(yoyMap).sort(([a], [b]) => a - b)
-    .map(([yr, v]) => ({ year: yr, "Avg Steps": v.count ? Math.round(v.sum / v.count) : 0 }));
-
-  const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const presentIds = activeTab.layout.map(l => l.i);
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 24 }}>
+      {/* ── Header ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <h1 style={{ margin: 0 }}>Dashboard</h1>
-        <button className="btn" onClick={syncToday} disabled={syncing}
-          style={{ fontSize: "0.8rem", padding: "7px 18px" }}>
-          {syncing ? "Syncing…" : "Sync Today"}
-        </button>
-      </div>
-
-      {/* KPIs */}
-      <div className="kpi-grid">
-        <div className="kpi">
-          <div className="kpi-label">Steps
-            {insights && <TrendBadge pct={insights.steps?.trend_pct} />}
-          </div>
-          <div className="kpi-value">{fmtKpi(latest.steps)}</div>
-          {insights && <div style={{ fontSize: "0.7rem", color: "#555", marginTop: 4 }}>7d avg {fmtKpi(insights.steps?.avg_7d)}</div>}
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Calories
-            {insights && <TrendBadge pct={insights.calories?.trend_pct} />}
-          </div>
-          <div className="kpi-value" style={{ color: RED }}>{fmtKpi(latest.total_calories)}</div>
-          {insights && <div style={{ fontSize: "0.7rem", color: "#555", marginTop: 4 }}>7d avg {fmtKpi(insights.calories?.avg_7d)}</div>}
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Resting HR
-            {insights && <TrendBadge pct={insights.resting_hr?.trend_pct} inverse />}
-          </div>
-          <div className="kpi-value">{fmtKpi(latest.resting_hr)} <span style={{ fontSize: "1rem", color: "#555" }}>bpm</span></div>
-          {insights && <div style={{ fontSize: "0.7rem", color: "#555", marginTop: 4 }}>7d avg {insights.resting_hr?.avg_7d ? Math.round(insights.resting_hr.avg_7d) + " bpm" : "—"}</div>}
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Avg HR</div>
-          <div className="kpi-value">{fmtKpi(latest.avg_hr)} <span style={{ fontSize: "1rem", color: "#555" }}>bpm</span></div>
-        </div>
-      </div>
-
-      {/* Readiness + PRs row */}
-      {(readiness || records) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          {/* Readiness */}
-          {readiness && (
-            <div className="card" style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <ReadinessRing score={readiness.composite} label={readiness.label} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "0.65rem", letterSpacing: 3, color: "#555", textTransform: "uppercase", marginBottom: 8 }}>Readiness</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                  {[
-                    { label: "HRV", val: readiness.hrv_score },
-                    { label: "Sleep", val: readiness.sleep_score },
-                    { label: "RHR", val: readiness.rhr_score },
-                  ].map(({ label, val }) => (
-                    <div key={label}>
-                      <div style={{ fontSize: "0.65rem", color: "#555", letterSpacing: 1 }}>{label}</div>
-                      <div style={{ fontSize: "1.1rem", fontWeight: 700, color: val >= 65 ? LIME : val >= 45 ? "#f39c12" : RED }}>
-                        {val ?? "—"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!editMode && (
+            <button className="btn" onClick={syncToday} disabled={syncing}
+              style={{ fontSize: "0.8rem", padding: "7px 18px" }}>
+              {syncing ? "Syncing…" : "Sync Today"}
+            </button>
           )}
-
-          {/* Personal Records */}
-          {records && (
-            <div className="card">
-              <div style={{ fontSize: "0.65rem", letterSpacing: 3, color: "#555", textTransform: "uppercase", marginBottom: 12 }}>Personal Records</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {records.best_steps_days?.slice(0, 1).map(r => (
-                  <div key={r.date} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#888" }}>Best Step Day</span>
-                    <span style={{ fontWeight: 700, color: LIME }}>{Number(r.steps).toLocaleString()} <span style={{ color: "#555", fontSize: "0.75rem" }}>{new Date(r.date).toLocaleDateString()}</span></span>
-                  </div>
-                ))}
-                {records.longest_run && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#888" }}>Longest Activity</span>
-                    <span style={{ fontWeight: 700, color: RED }}>{mToDist(records.longest_run.distance_meters).toFixed(1)} {distUnit}</span>
-                  </div>
-                )}
-                {records.lowest_rhr && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#888" }}>Lowest Resting HR</span>
-                    <span style={{ fontWeight: 700, color: BLUE }}>{records.lowest_rhr.resting_hr} bpm</span>
-                  </div>
-                )}
-                {records.best_sleep_score && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#888" }}>Best Sleep Score</span>
-                    <span style={{ fontWeight: 700, color: PURPLE }}>{Math.round(records.best_sleep_score.score)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Steps chart */}
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0 }}>Daily Steps</h2>
-          <div style={{ display: "flex", gap: 8 }}>
-            {["all", "year", "month"].map(v => (
-              <button key={v} onClick={() => setView(v)}
-                style={{ padding: "5px 14px", borderRadius: 4, border: "1px solid",
-                  borderColor: view === v ? LIME : "#333",
-                  background: view === v ? LIME + "22" : "transparent",
-                  color: view === v ? LIME : "#888", cursor: "pointer", fontSize: "0.8rem" }}>
-                {v === "all" ? "All Time" : v[0].toUpperCase() + v.slice(1)}
+          {editMode && (
+            <>
+              <select defaultValue="" onChange={e => { if (e.target.value) { applyPreset(e.target.value); e.target.value = ""; } }}
+                style={{ fontSize: "0.8rem", padding: "7px 10px" }}>
+                <option value="" disabled>Apply preset…</option>
+                {PRESETS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <button onClick={() => setShowLib(l => !l)}
+                style={{ padding: "7px 14px", borderRadius: 4, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+                  border: "1px solid #c8f135", background: showLib ? "#c8f13522" : "transparent", color: "#c8f135" }}>
+                + Add Widget
               </button>
-            ))}
-            {(view === "year" || view === "month") && (
-              <select value={year || ""} onChange={e => { setYear(+e.target.value); setMonth(null); }}>
-                <option value="">Year</option>
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            )}
-            {view === "month" && year && (
-              <select value={month || ""} onChange={e => setMonth(+e.target.value)}>
-                <option value="">Month</option>
-                {months.map(m => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
-              </select>
+            </>
+          )}
+          <button onClick={() => { setEditMode(e => !e); setShowLib(false); }}
+            style={{ padding: "7px 16px", borderRadius: 4, fontSize: "0.8rem", cursor: "pointer", fontWeight: editMode ? 700 : 400,
+              border: `1px solid ${editMode ? "#c8f135" : "var(--border)"}`,
+              background: editMode ? "#c8f135" : "transparent",
+              color: editMode ? "#000" : "var(--sub)" }}>
+            {editMode ? "✓ Done" : "Edit Layout"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Tab bar ── */}
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 0 }}>
+        {state.tabs.map(tab => (
+          <div key={tab.id} style={{ display: "flex", alignItems: "center", position: "relative" }}>
+            <button onClick={() => setState(s => ({ ...s, activeTabId: tab.id }))}
+              style={{
+                padding: "8px 16px", border: "none", borderRadius: "4px 4px 0 0",
+                background: state.activeTabId === tab.id ? "var(--surface)" : "transparent",
+                borderTop: state.activeTabId === tab.id ? "2px solid #c8f135" : "2px solid transparent",
+                color: state.activeTabId === tab.id ? "var(--text)" : "var(--muted)",
+                cursor: "pointer", fontSize: "0.85rem", fontWeight: state.activeTabId === tab.id ? 600 : 400,
+              }}>
+              {tab.name}
+            </button>
+            {editMode && state.activeTabId === tab.id && (
+              <div style={{ display: "flex", gap: 0, marginLeft: -8 }}>
+                <button onClick={() => renameTab(tab.id)} title="Rename"
+                  style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "0.75rem", padding: "4px 4px" }}>✎</button>
+                {state.tabs.length > 1 && (
+                  <button onClick={() => removeTab(tab.id)} title="Remove tab"
+                    style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "0.8rem", padding: "4px 4px" }}>×</button>
+                )}
+              </div>
             )}
           </div>
-        </div>
-
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={plotData} margin={{ top: 20, right: 8, bottom: 0, left: 0 }}>
-            <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-            <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={50} />
-            <Tooltip {...ct.tooltip}
-              labelFormatter={d => new Date(d).toLocaleDateString()}
-              formatter={v => v ? v.toLocaleString() : "—"}
-            />
-            {yearBoundaries.map(d => (
-              <ReferenceLine key={d} x={d} stroke="rgba(150,150,150,0.4)" strokeDasharray="4 3" />
-            ))}
-            <Bar dataKey="steps" radius={[2, 2, 0, 0]} fill={BLUE} isAnimationActive={false}
-              shape={(props) => {
-                const steps = props.steps || 0;
-                const isPeak  = steps >= peakSteps && peakSteps > 0;
-                const isTop10 = steps >= top10Threshold && top10Threshold > 0 && steps > 0;
-                return (
-                  <g>
-                    <rect x={props.x} y={props.y} width={props.width} height={props.height}
-                      fill={isPeak ? RED : BLUE} rx={2} />
-                    {isTop10 &&
-                      <text x={props.x + props.width / 2} y={props.y - 5}
-                        textAnchor="middle" fill="#ccc" fontSize={9} fontWeight={600}>
-                        {steps.toLocaleString()}
-                      </text>
-                    }
-                  </g>
-                );
-              }}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        ))}
+        {editMode && (
+          <button onClick={addTab}
+            style={{ padding: "8px 14px", border: "none", borderRadius: "4px 4px 0 0", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: "0.82rem" }}>
+            + Tab
+          </button>
+        )}
       </div>
 
-      {/* Calories + HR */}
-      <div className="charts-row">
-        <div className="card">
-          <h2>Calories Burned</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={calData}>
-              <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={45} />
-              <CartesianGrid stroke={ct.gridColor} vertical={false} />
-              <Tooltip {...ct.tooltip} labelFormatter={d => new Date(d).toLocaleDateString()} formatter={v => v ? v.toLocaleString() : "—"} />
-              <Line type="monotone" dataKey="Active Calories" stroke="#4a90d9" dot={false} strokeWidth={1.5} />
-              <Line type="monotone" dataKey="Total Calories"  stroke="#f39c12" dot={false} strokeWidth={1.5} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="card">
-          <h2>Heart Rate</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={hrData}>
-              <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={40} />
-              <CartesianGrid stroke={ct.gridColor} vertical={false} />
-              <Tooltip {...ct.tooltip} labelFormatter={d => new Date(d).toLocaleDateString()} formatter={v => v ? Math.round(v) + " bpm" : "—"} />
-              <Line type="monotone" dataKey="Resting Heart Rate" stroke="#ff4545" dot={false} strokeWidth={1.5} />
-              <Line type="monotone" dataKey="Average Heart Rate" stroke="#c8f135" dot={false} strokeWidth={1.5} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Year-over-Year */}
-      {yoyData.length >= 2 && (
-        <div className="card">
-          <h2>Year-over-Year · Avg Daily Steps</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={yoyData} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
-              <XAxis dataKey="year" tick={ct.axisTick} axisLine={false} tickLine={false} />
-              <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={50} />
-              <Tooltip {...ct.tooltip} formatter={v => v.toLocaleString()} />
-              <Bar dataKey="Avg Steps" fill={LIME} radius={[3, 3, 0, 0]} isAnimationActive={false}
-                shape={(props) => (
-                  <g>
-                    <rect x={props.x} y={props.y} width={props.width} height={props.height} fill={LIME} rx={3} />
-                    <text x={props.x + props.width / 2} y={props.y - 6}
-                      textAnchor="middle" fill="#ccc" fontSize={10} fontWeight={600}>
-                      {Number(props["Avg Steps"]).toLocaleString()}
-                    </text>
-                  </g>
-                )}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+      {/* ── Edit hint ── */}
+      {editMode && (
+        <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: 12, padding: "7px 12px",
+          background: "var(--surface)", borderRadius: 4, border: "1px solid var(--border)" }}>
+          Drag the handle bar to rearrange · Drag bottom-right corner to resize · Click × to remove
         </div>
       )}
+
+      {/* ── Grid ── */}
+      <div ref={containerRef}>
+        {gridW > 0 && (
+          <GridLayout
+            layout={activeTab.layout}
+            cols={COLS}
+            rowHeight={ROW_H}
+            width={gridW}
+            margin={[GAP, GAP]}
+            containerPadding={[0, 0]}
+            onLayoutChange={updateLayout}
+            isDraggable={editMode}
+            isResizable={editMode}
+            draggableHandle=".w-drag"
+            useCSSTransforms
+          >
+            {activeTab.layout.map(item => {
+              const def = WIDGET_REGISTRY.find(w => w.id === item.i);
+              return (
+                <div key={item.i}>
+                  <div style={{
+                    height: "100%", background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: 4, overflow: "hidden", boxSizing: "border-box",
+                    display: "flex", flexDirection: "column",
+                    ...(editMode && { outline: "1px dashed #c8f13540", outlineOffset: -1 }),
+                  }}>
+                    {/* Drag handle bar (edit mode only) */}
+                    {editMode && (
+                      <div className="w-drag" style={{
+                        height: 24, flexShrink: 0, cursor: "grab",
+                        background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border)",
+                        display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px",
+                        userSelect: "none",
+                      }}>
+                        <span style={{ fontSize: "0.6rem", color: "var(--muted)", display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ letterSpacing: 1 }}>⠿</span>
+                          <span style={{ letterSpacing: 0.5 }}>{def?.title ?? item.i}</span>
+                        </span>
+                        <button
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => { e.stopPropagation(); removeWidget(item.i); }}
+                          style={{ background: "none", border: "none", color: "#ff4545", cursor: "pointer", fontSize: "1rem", lineHeight: 1, padding: "0 2px" }}>
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    {/* Widget content */}
+                    <div style={{ flex: 1, minHeight: 0, padding: 16, overflow: "hidden" }}>
+                      <WidgetRenderer id={item.i} data={dashData} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </GridLayout>
+        )}
+      </div>
+
+      {/* ── Library panel ── */}
+      {showLib && <LibraryPanel onAdd={addWidget} onClose={() => setShowLib(false)} presentIds={presentIds} />}
+
+      {/* ── Grid & resize handle styles ── */}
+      <style>{`
+        .react-grid-item.react-grid-placeholder {
+          background: #c8f13520 !important;
+          border: 1px dashed #c8f135 !important;
+          border-radius: 4px;
+          opacity: 1 !important;
+        }
+        .react-resizable-handle {
+          width: 14px !important;
+          height: 14px !important;
+          bottom: 4px !important;
+          right: 4px !important;
+          background-image: none !important;
+          border-right: 2px solid #c8f135 !important;
+          border-bottom: 2px solid #c8f135 !important;
+          border-radius: 0 0 3px 0;
+          opacity: 0.6;
+        }
+        .react-resizable-handle:hover { opacity: 1; }
+        .react-resizable-handle::after { content: none !important; }
+        .w-drag:active { cursor: grabbing; }
+      `}</style>
     </div>
   );
 }
