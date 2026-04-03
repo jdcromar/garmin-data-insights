@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import GridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -6,7 +6,7 @@ import { api } from "../api";
 import { WIDGET_REGISTRY } from "../dashboard/widgets";
 import { PRESETS } from "../dashboard/presets";
 
-const STORAGE_KEY = "gd_dashboard_v2";
+const STORAGE_KEY = "gd_dashboard_v3";
 const COLS = 12;
 const ROW_H = 80;
 const GAP  = 12;
@@ -110,17 +110,15 @@ export default function Dashboard() {
   const [editMode, setEditMode]   = useState(false);
   const [showLib,  setShowLib]    = useState(false);
   const [gridW,    setGridW]      = useState(0);
-  const containerRef = useRef(null);
+  // Callback ref fires the moment the div appears in the DOM (no race with loading state)
+  const containerRef = useCallback(node => {
+    if (!node) return;
+    setGridW(node.getBoundingClientRect().width);
+    const ro = new ResizeObserver(e => setGridW(e[0].contentRect.width));
+    ro.observe(node);
+  }, []);
 
   const activeTab = state.tabs.find(t => t.id === state.activeTabId) || state.tabs[0];
-
-  // Measure container
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(e => setGridW(e[0].contentRect.width));
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
   // Persist layout changes
   useEffect(() => { saveState(state); }, [state]);
@@ -287,6 +285,7 @@ export default function Dashboard() {
             onLayoutChange={updateLayout}
             isDraggable={editMode}
             isResizable={editMode}
+            resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
             draggableHandle=".w-drag"
             useCSSTransforms
           >
@@ -343,19 +342,53 @@ export default function Dashboard() {
           border-radius: 4px;
           opacity: 1 !important;
         }
+        /* Base handle — invisible by default */
         .react-resizable-handle {
-          width: 14px !important;
-          height: 14px !important;
-          bottom: 4px !important;
-          right: 4px !important;
+          position: absolute !important;
+          background: none !important;
           background-image: none !important;
-          border-right: 2px solid #c8f135 !important;
-          border-bottom: 2px solid #c8f135 !important;
-          border-radius: 0 0 3px 0;
-          opacity: 0.6;
+          opacity: 0;
+          transition: opacity 0.15s;
+          z-index: 10;
         }
-        .react-resizable-handle:hover { opacity: 1; }
+        .react-grid-item:hover .react-resizable-handle,
+        .react-grid-item:active .react-resizable-handle { opacity: 1; }
         .react-resizable-handle::after { content: none !important; }
+
+        /* Corner handles — 14×14 with lime corner brackets */
+        .react-resizable-handle-se,
+        .react-resizable-handle-sw,
+        .react-resizable-handle-ne,
+        .react-resizable-handle-nw {
+          width: 14px !important; height: 14px !important; cursor: inherit;
+        }
+        .react-resizable-handle-se { bottom: 2px !important; right: 2px !important; cursor: se-resize !important;
+          border-right: 2px solid #c8f135; border-bottom: 2px solid #c8f135; border-radius: 0 0 3px 0; }
+        .react-resizable-handle-sw { bottom: 2px !important; left: 2px !important; cursor: sw-resize !important;
+          border-left: 2px solid #c8f135; border-bottom: 2px solid #c8f135; border-radius: 0 0 0 3px; }
+        .react-resizable-handle-ne { top: 2px !important; right: 2px !important; cursor: ne-resize !important;
+          border-right: 2px solid #c8f135; border-top: 2px solid #c8f135; border-radius: 0 3px 0 0; }
+        .react-resizable-handle-nw { top: 2px !important; left: 2px !important; cursor: nw-resize !important;
+          border-left: 2px solid #c8f135; border-top: 2px solid #c8f135; border-radius: 3px 0 0 0; }
+
+        /* Edge handles — thin bars centered on each side */
+        .react-resizable-handle-n,
+        .react-resizable-handle-s {
+          width: 40px !important; height: 6px !important;
+          left: 50% !important; transform: translateX(-50%) !important;
+          background: #c8f13566 !important; border-radius: 3px !important;
+        }
+        .react-resizable-handle-n  { top: 2px !important; cursor: n-resize !important; }
+        .react-resizable-handle-s  { bottom: 2px !important; cursor: s-resize !important; }
+        .react-resizable-handle-e,
+        .react-resizable-handle-w {
+          width: 6px !important; height: 40px !important;
+          top: 50% !important; transform: translateY(-50%) !important;
+          background: #c8f13566 !important; border-radius: 3px !important;
+        }
+        .react-resizable-handle-e { right: 2px !important; cursor: e-resize !important; }
+        .react-resizable-handle-w { left: 2px !important; cursor: w-resize !important; }
+
         .w-drag:active { cursor: grabbing; }
       `}</style>
     </div>
