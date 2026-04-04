@@ -6,7 +6,7 @@ import { api } from "../api";
 import { WIDGET_REGISTRY } from "../dashboard/widgets";
 import { PRESETS } from "../dashboard/presets";
 
-const STORAGE_KEY = "gd_dashboard_v3";
+const STORAGE_KEY = "gd_dashboard_v4";
 const COLS = 12;
 const ROW_H = 80;
 const GAP  = 12;
@@ -268,12 +268,12 @@ export default function Dashboard() {
       {editMode && (
         <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: 12, padding: "7px 12px",
           background: "var(--surface)", borderRadius: 4, border: "1px solid var(--border)" }}>
-          Drag the handle bar to rearrange · Drag bottom-right corner to resize · Click × to remove
+          Drag the title bar to move · Grab any edge or corner to resize · Click × to remove
         </div>
       )}
 
       {/* ── Grid ── */}
-      <div ref={containerRef}>
+      <div ref={containerRef} className={editMode ? "edit-active" : ""}>
         {gridW > 0 && (
           <GridLayout
             layout={activeTab.layout}
@@ -342,54 +342,64 @@ export default function Dashboard() {
           border-radius: 4px;
           opacity: 1 !important;
         }
-        /* Base handle — invisible by default */
+
+        /* Hide ALL handles outside edit mode */
         .react-resizable-handle {
+          display: none !important;
+        }
+        /* Show + style ALL handles inside .edit-active */
+        .edit-active .react-resizable-handle {
+          display: block !important;
           position: absolute !important;
           background: none !important;
           background-image: none !important;
-          opacity: 0;
-          transition: opacity 0.15s;
-          z-index: 10;
+          z-index: 20;
         }
-        .react-grid-item:hover .react-resizable-handle,
-        .react-grid-item:active .react-resizable-handle { opacity: 1; }
-        .react-resizable-handle::after { content: none !important; }
+        .edit-active .react-resizable-handle::after { content: none !important; }
 
-        /* Corner handles — 14×14 with lime corner brackets */
-        .react-resizable-handle-se,
-        .react-resizable-handle-sw,
-        .react-resizable-handle-ne,
-        .react-resizable-handle-nw {
-          width: 14px !important; height: 14px !important; cursor: inherit;
+        /* Corners — L-bracket in lime */
+        .edit-active .react-resizable-handle-se,
+        .edit-active .react-resizable-handle-sw,
+        .edit-active .react-resizable-handle-ne,
+        .edit-active .react-resizable-handle-nw {
+          width: 16px !important; height: 16px !important;
         }
-        .react-resizable-handle-se { bottom: 2px !important; right: 2px !important; cursor: se-resize !important;
-          border-right: 2px solid #c8f135; border-bottom: 2px solid #c8f135; border-radius: 0 0 3px 0; }
-        .react-resizable-handle-sw { bottom: 2px !important; left: 2px !important; cursor: sw-resize !important;
-          border-left: 2px solid #c8f135; border-bottom: 2px solid #c8f135; border-radius: 0 0 0 3px; }
-        .react-resizable-handle-ne { top: 2px !important; right: 2px !important; cursor: ne-resize !important;
-          border-right: 2px solid #c8f135; border-top: 2px solid #c8f135; border-radius: 0 3px 0 0; }
-        .react-resizable-handle-nw { top: 2px !important; left: 2px !important; cursor: nw-resize !important;
-          border-left: 2px solid #c8f135; border-top: 2px solid #c8f135; border-radius: 3px 0 0 0; }
+        .edit-active .react-resizable-handle-se {
+          bottom: 2px !important; right: 2px !important; cursor: se-resize !important;
+          border-right: 2px solid #c8f135 !important; border-bottom: 2px solid #c8f135 !important;
+        }
+        .edit-active .react-resizable-handle-sw {
+          bottom: 2px !important; left: 2px !important; cursor: sw-resize !important;
+          border-left: 2px solid #c8f135 !important; border-bottom: 2px solid #c8f135 !important;
+        }
+        .edit-active .react-resizable-handle-ne {
+          top: 2px !important; right: 2px !important; cursor: ne-resize !important;
+          border-right: 2px solid #c8f135 !important; border-top: 2px solid #c8f135 !important;
+        }
+        .edit-active .react-resizable-handle-nw {
+          top: 2px !important; left: 2px !important; cursor: nw-resize !important;
+          border-left: 2px solid #c8f135 !important; border-top: 2px solid #c8f135 !important;
+        }
 
-        /* Edge handles — thin bars centered on each side */
-        .react-resizable-handle-n,
-        .react-resizable-handle-s {
-          width: 40px !important; height: 6px !important;
+        /* Edge handles — pill bar centered on each edge */
+        .edit-active .react-resizable-handle-n,
+        .edit-active .react-resizable-handle-s {
+          width: 48px !important; height: 5px !important;
           left: 50% !important; transform: translateX(-50%) !important;
-          background: #c8f13566 !important; border-radius: 3px !important;
+          background: #c8f135aa !important; border-radius: 3px !important;
         }
-        .react-resizable-handle-n  { top: 2px !important; cursor: n-resize !important; }
-        .react-resizable-handle-s  { bottom: 2px !important; cursor: s-resize !important; }
-        .react-resizable-handle-e,
-        .react-resizable-handle-w {
-          width: 6px !important; height: 40px !important;
+        .edit-active .react-resizable-handle-n { top: 2px !important; cursor: n-resize !important; }
+        .edit-active .react-resizable-handle-s { bottom: 2px !important; cursor: s-resize !important; }
+        .edit-active .react-resizable-handle-e,
+        .edit-active .react-resizable-handle-w {
+          width: 5px !important; height: 48px !important;
           top: 50% !important; transform: translateY(-50%) !important;
-          background: #c8f13566 !important; border-radius: 3px !important;
+          background: #c8f135aa !important; border-radius: 3px !important;
         }
-        .react-resizable-handle-e { right: 2px !important; cursor: e-resize !important; }
-        .react-resizable-handle-w { left: 2px !important; cursor: w-resize !important; }
+        .edit-active .react-resizable-handle-e { right: 2px !important; cursor: e-resize !important; }
+        .edit-active .react-resizable-handle-w { left: 2px !important; cursor: w-resize !important; }
 
-        .w-drag:active { cursor: grabbing; }
+        .w-drag:active { cursor: grabbing !important; }
       `}</style>
     </div>
   );

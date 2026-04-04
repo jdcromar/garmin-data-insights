@@ -3,24 +3,23 @@ export const PRESETS = [
     id: "default",
     name: "Default",
     layout: [
-      // Top KPI row — 3 wide cards
-      { i: "kpi_steps",        x: 0, y: 0,  w: 4,  h: 3, minW: 2, minH: 2 },
-      { i: "kpi_calories",     x: 4, y: 0,  w: 4,  h: 3, minW: 2, minH: 2 },
-      { i: "kpi_sleep",        x: 8, y: 0,  w: 4,  h: 3, minW: 2, minH: 2 },
-      // Hero chart
-      { i: "steps_chart",      x: 0, y: 3,  w: 12, h: 5, minW: 5, minH: 3 },
-      // Readiness + Records
-      { i: "readiness_card",   x: 0, y: 8,  w: 5,  h: 4, minW: 4, minH: 3 },
-      { i: "personal_records", x: 5, y: 8,  w: 7,  h: 4, minW: 4, minH: 3 },
-      // Two charts
-      { i: "calories_chart",   x: 0, y: 12, w: 6,  h: 4, minW: 4, minH: 3 },
-      { i: "hr_chart",         x: 6, y: 12, w: 6,  h: 4, minW: 4, minH: 3 },
-      // Summary row
-      { i: "weekly_summary",   x: 0, y: 16, w: 4,  h: 3, minW: 3, minH: 3 },
-      { i: "step_milestones",  x: 4, y: 16, w: 4,  h: 3, minW: 3, minH: 2 },
-      { i: "kpi_rhr",          x: 8, y: 16, w: 4,  h: 3, minW: 2, minH: 2 },
-      // Year-over-year
-      { i: "yoy_steps",        x: 0, y: 19, w: 12, h: 4, minW: 5, minH: 3 },
+      // Row 1: 4 KPI tiles
+      { i: "kpi_steps",        x: 0,  y: 0,  w: 3, h: 3, minW: 2, minH: 2 },
+      { i: "kpi_calories",     x: 3,  y: 0,  w: 3, h: 3, minW: 2, minH: 2 },
+      { i: "kpi_rhr",          x: 6,  y: 0,  w: 3, h: 3, minW: 2, minH: 2 },
+      { i: "kpi_sleep",        x: 9,  y: 0,  w: 3, h: 3, minW: 2, minH: 2 },
+      // Row 2: Hero steps chart
+      { i: "steps_chart",      x: 0,  y: 3,  w: 12, h: 5, minW: 5, minH: 3 },
+      // Row 3: Readiness ring + weekly summary + milestones
+      { i: "readiness_card",   x: 0,  y: 8,  w: 4, h: 4, minW: 4, minH: 3 },
+      { i: "weekly_summary",   x: 4,  y: 8,  w: 4, h: 4, minW: 3, minH: 3 },
+      { i: "personal_records", x: 8,  y: 8,  w: 4, h: 4, minW: 4, minH: 3 },
+      // Row 4: HR + calories side by side
+      { i: "hr_chart",         x: 0,  y: 12, w: 6, h: 4, minW: 4, minH: 3 },
+      { i: "calories_chart",   x: 6,  y: 12, w: 6, h: 4, minW: 4, minH: 3 },
+      // Row 5: Step milestones + YoY
+      { i: "step_milestones",  x: 0,  y: 16, w: 4, h: 3, minW: 3, minH: 2 },
+      { i: "yoy_steps",        x: 4,  y: 16, w: 8, h: 4, minW: 5, minH: 3 },
     ],
   },
   {

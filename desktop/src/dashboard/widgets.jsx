@@ -209,7 +209,7 @@ export function PersonalRecordsCard({ data }) {
 // ── Steps Chart ───────────────────────────────────────────────────────────────
 
 export function StepsChart({ data }) {
-  const [filter, setFilter] = useState("90d");
+  const [filter, setFilter] = useState("all");
   const ct = useChartTheme();
   const ds = data.dailyStats || [];
 
@@ -470,7 +470,7 @@ export function MonthlySummary({ data }) {
 // ── Activity Breakdown ────────────────────────────────────────────────────────
 
 export function ActivityBreakdown({ data }) {
-  const [period, setPeriod] = useState("90d");
+  const [period, setPeriod] = useState("all");
   const ct = useChartTheme();
   const now = new Date();
 
@@ -669,7 +669,7 @@ export function BestPerformances({ data }) {
 
 export function BodyBatteryChart({ data }) {
   const ct = useChartTheme();
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState(90);
   const now = new Date();
 
   const chartData = useMemo(() =>
