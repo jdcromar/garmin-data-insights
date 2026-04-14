@@ -45,4 +45,5 @@ export const api = {
   activityRoute:  (id) => get(`/activities/${id}/route`),
   bodyBattery:    () => get("/body-battery"),
   locations:      () => get("/activities/locations"),
+  runningDashboard: () => get("/running/dashboard"),
 };

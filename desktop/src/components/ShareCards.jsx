@@ -4,9 +4,10 @@ import html2canvas from "html2canvas";
 const CARD_PX      = 360;
 const EXPORT_SCALE = 3;
 
-// ── 10 Themes ─────────────────────────────────────────────────────────────────
+// ── 30 Themes ─────────────────────────────────────────────────────────────────
 
 export const THEMES = [
+  // ── Original 10 ──
   {
     id: "carbon",   name: "Carbon",
     bg: "#0a0a0a",  surface: "#111111",
@@ -76,6 +77,147 @@ export const THEMES = [
     bar: "#ffffff",
     a1: "#ffffff",  a2: "#cccccc", a3: "#888888", a4: "#444444",
     text: "#ffffff", sub: "#555555", muted: "#111111", eyebrow: "#222222",
+  },
+  // ── New 20 ──
+  {
+    id: "aurora",   name: "Aurora",
+    bg: "#050a12",  surface: "#0a1220",
+    bar: "linear-gradient(90deg,#00ff87,#60efff,#c850ff)",
+    a1: "#00ff87",  a2: "#60efff", a3: "#c850ff", a4: "#ff6bcb",
+    text: "#e8f4ff", sub: "#5a8aaa", muted: "#0c1828", eyebrow: "#1a2a3e",
+  },
+  {
+    id: "ocean",    name: "Ocean",
+    bg: "#020c1b",  surface: "#071a2e",
+    bar: "linear-gradient(90deg,#0077b6,#00b4d8)",
+    a1: "#00b4d8",  a2: "#90e0ef", a3: "#caf0f8", a4: "#48cae4",
+    text: "#caf0f8", sub: "#4a8ca8", muted: "#0a1e30", eyebrow: "#153045",
+  },
+  {
+    id: "rose",     name: "Rose",
+    bg: "#120609",  surface: "#1c0a10",
+    bar: "linear-gradient(90deg,#ff6b9d,#c44dff)",
+    a1: "#ff6b9d",  a2: "#c44dff", a3: "#ffa3c4", a4: "#e090ff",
+    text: "#fff0f5", sub: "#996075", muted: "#1e0c15", eyebrow: "#331520",
+  },
+  {
+    id: "ember",    name: "Ember",
+    bg: "#0c0504",  surface: "#180a06",
+    bar: "linear-gradient(90deg,#ff4500,#ff8c00)",
+    a1: "#ff4500",  a2: "#ff8c00", a3: "#ffd700", a4: "#ff6347",
+    text: "#fff0e6", sub: "#8a5530", muted: "#1a0c06", eyebrow: "#2e1508",
+  },
+  {
+    id: "arctic",   name: "Arctic",
+    bg: "#f5f8fc",  surface: "#e8eef6",
+    bar: "linear-gradient(90deg,#2563eb,#06b6d4)",
+    a1: "#2563eb",  a2: "#06b6d4", a3: "#8b5cf6", a4: "#0ea5e9",
+    text: "#0f172a", sub: "#64748b", muted: "#d1d8e4", eyebrow: "#94a3b8",
+  },
+  {
+    id: "sakura",   name: "Sakura",
+    bg: "#fef6f8",  surface: "#fce8ee",
+    bar: "linear-gradient(90deg,#ec4899,#f472b6)",
+    a1: "#ec4899",  a2: "#8b5cf6", a3: "#f97316", a4: "#e11d48",
+    text: "#1c1017", sub: "#9a6880", muted: "#f5d0dc", eyebrow: "#c898a8",
+  },
+  {
+    id: "vaporwave", name: "Vaporwave",
+    bg: "#1a0a2e",  surface: "#240e40",
+    bar: "linear-gradient(90deg,#ff71ce,#01cdfe,#b967ff)",
+    a1: "#ff71ce",  a2: "#01cdfe", a3: "#b967ff", a4: "#05ffa1",
+    text: "#ffeeff", sub: "#8866aa", muted: "#2a1248", eyebrow: "#3a1a5a",
+  },
+  {
+    id: "slate",    name: "Slate",
+    bg: "#0f1419",  surface: "#1a2028",
+    bar: "#64748b",
+    a1: "#94a3b8",  a2: "#e2e8f0", a3: "#cbd5e1", a4: "#64748b",
+    text: "#f1f5f9", sub: "#64748b", muted: "#1e293b", eyebrow: "#334155",
+  },
+  {
+    id: "matrix",   name: "Matrix",
+    bg: "#000a00",  surface: "#001200",
+    bar: "#00ff41",
+    a1: "#00ff41",  a2: "#00cc33", a3: "#009926", a4: "#33ff77",
+    text: "#00ff41", sub: "#007722", muted: "#001a00", eyebrow: "#003300",
+  },
+  {
+    id: "lavender",  name: "Lavender",
+    bg: "#0c0a14",  surface: "#140f22",
+    bar: "linear-gradient(90deg,#a78bfa,#818cf8)",
+    a1: "#a78bfa",  a2: "#818cf8", a3: "#c084fc", a4: "#67e8f9",
+    text: "#ede9fe", sub: "#7c6aaa", muted: "#1c1530", eyebrow: "#2a2045",
+  },
+  {
+    id: "copper",   name: "Copper",
+    bg: "#0c0806",  surface: "#160e0a",
+    bar: "linear-gradient(90deg,#b87333,#da9a5b)",
+    a1: "#da9a5b",  a2: "#b87333", a3: "#f0c27f", a4: "#cd853f",
+    text: "#faebd7", sub: "#8a6a48", muted: "#1a100a", eyebrow: "#2e1c10",
+  },
+  {
+    id: "dracula",  name: "Dracula",
+    bg: "#282a36",  surface: "#343746",
+    bar: "linear-gradient(90deg,#bd93f9,#ff79c6)",
+    a1: "#bd93f9",  a2: "#ff79c6", a3: "#50fa7b", a4: "#f1fa8c",
+    text: "#f8f8f2", sub: "#6272a4", muted: "#3a3d50", eyebrow: "#4a4e66",
+  },
+  {
+    id: "nord",     name: "Nord",
+    bg: "#2e3440",  surface: "#3b4252",
+    bar: "#88c0d0",
+    a1: "#88c0d0",  a2: "#81a1c1", a3: "#a3be8c", a4: "#ebcb8b",
+    text: "#eceff4", sub: "#7b88a0", muted: "#434c5e", eyebrow: "#4c566a",
+  },
+  {
+    id: "monokai",  name: "Monokai",
+    bg: "#1e1f1c",  surface: "#272822",
+    bar: "#f92672",
+    a1: "#a6e22e",  a2: "#f92672", a3: "#66d9ef", a4: "#e6db74",
+    text: "#f8f8f2", sub: "#75715e", muted: "#3e3d32", eyebrow: "#49483e",
+  },
+  {
+    id: "solarized", name: "Solarized",
+    bg: "#002b36",  surface: "#073642",
+    bar: "#b58900",
+    a1: "#b58900",  a2: "#cb4b16", a3: "#268bd2", a4: "#2aa198",
+    text: "#fdf6e3", sub: "#657b83", muted: "#0a3540", eyebrow: "#134a55",
+  },
+  {
+    id: "candy",    name: "Candy",
+    bg: "#fef9ff",  surface: "#f8eeff",
+    bar: "linear-gradient(90deg,#f472b6,#a78bfa,#38bdf8)",
+    a1: "#f472b6",  a2: "#a78bfa", a3: "#38bdf8", a4: "#fb923c",
+    text: "#1e1030", sub: "#8866a8", muted: "#ead8f4", eyebrow: "#b8a0c8",
+  },
+  {
+    id: "earth",    name: "Earth",
+    bg: "#0e0c08",  surface: "#181410",
+    bar: "#a0826d",
+    a1: "#a0826d",  a2: "#6b8f71", a3: "#d4a574", a4: "#8fbc8f",
+    text: "#f0ebe0", sub: "#7a7060", muted: "#1c1810", eyebrow: "#2e2820",
+  },
+  {
+    id: "synthwave", name: "Synthwave",
+    bg: "#0e0020",  surface: "#180038",
+    bar: "linear-gradient(90deg,#f706cf,#fd1d1d,#fcb045)",
+    a1: "#f706cf",  a2: "#fd1d1d", a3: "#fcb045", a4: "#2de2e6",
+    text: "#fff1ff", sub: "#8855aa", muted: "#1a0038", eyebrow: "#2a0050",
+  },
+  {
+    id: "paper",    name: "Paper",
+    bg: "#faf8f5",  surface: "#f0ece6",
+    bar: "#3d3d3d",
+    a1: "#3d3d3d",  a2: "#b05a30", a3: "#2e6b4f", a4: "#654ea3",
+    text: "#2d2d2d", sub: "#6b6560", muted: "#d8d0c8", eyebrow: "#a09888",
+  },
+  {
+    id: "cyberpunk", name: "Cyberpunk",
+    bg: "#0a0014",  surface: "#140024",
+    bar: "linear-gradient(90deg,#fcee09,#ff003c)",
+    a1: "#fcee09",  a2: "#ff003c", a3: "#00f0ff", a4: "#ff6bff",
+    text: "#fcee09", sub: "#8a7a20", muted: "#1a0028", eyebrow: "#2a0040",
   },
 ];
 
@@ -150,9 +292,9 @@ export function HeroCard({ year, tagline, t }) {
           textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
           Your {year} in Motion
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ fontSize: 110, fontWeight: 900, color: t.text, lineHeight: 0.85,
-            letterSpacing: -5, marginBottom: 24 }}>{year}</div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+          <div style={{ fontSize: 90, fontWeight: 900, color: t.text, lineHeight: 0.9,
+            letterSpacing: -4, marginBottom: 16 }}>{year}</div>
           <div style={{ fontSize: 13, color: t.a1, fontWeight: 600, letterSpacing: 0.5 }}>{tagline}</div>
         </div>
       </Shell>
@@ -171,11 +313,11 @@ export function ActivityCard({ year, n, dist, hrs, cals, distUnit, t }) {
           textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
           {year} · Activities
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ fontSize: 80, fontWeight: 900, color: t.text,
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+          <div style={{ fontSize: 64, fontWeight: 900, color: t.text,
             lineHeight: 1, letterSpacing: -3, marginBottom: 4 }}>{n.toLocaleString()}</div>
           <div style={{ fontSize: 10, letterSpacing: 3, color: t.a1,
-            textTransform: "uppercase", fontWeight: 700, marginBottom: 20 }}>Workouts</div>
+            textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>Workouts</div>
           <Divider t={t} />
           <StatRow label="Distance"        value={`${dist.toFixed(1)} ${distUnit}`} t={t} color={t.text} />
           <StatRow label="Time Moving"     value={`${hrs.toFixed(1)} hrs`}          t={t} color={t.text} />
@@ -197,11 +339,11 @@ export function StepsCard({ year, totalSteps, avgSteps, bestSteps, t }) {
           textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
           {year} · Daily Grind
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           <div style={{ fontSize: 9, letterSpacing: 3, color: t.eyebrow,
             textTransform: "uppercase", marginBottom: 6 }}>Total Steps</div>
-          <div style={{ fontSize: 54, fontWeight: 900, color: t.text,
-            lineHeight: 1, letterSpacing: -2, marginBottom: 20 }}>
+          <div style={{ fontSize: 44, fontWeight: 900, color: t.text,
+            lineHeight: 1, letterSpacing: -2, marginBottom: 14 }}>
             {totalSteps.toLocaleString()}
           </div>
           <Divider t={t} />
@@ -225,18 +367,18 @@ export function ScaleCard({ year, dist, elev, marathonDist, earthCirc, distUnit,
           textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
           {year} · In Perspective
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 14 }}>
           {[
             { val: (dist / marathonDist).toFixed(1), label: "marathon equivalent", color: t.a1 },
             { val: (elev / everest).toFixed(2),      label: "times up Everest",    color: t.a2 },
             { val: (dist / earthCirc).toFixed(4),    label: "laps around Earth",   color: t.a3 },
           ].map(({ val, label, color }) => (
             <div key={label}>
-              <div style={{ fontSize: 50, fontWeight: 900, color: t.text,
-                lineHeight: 1, letterSpacing: -2 }}>
-                {val}<span style={{ fontSize: 22, color }}>×</span>
+              <div style={{ fontSize: 36, fontWeight: 900, color: t.text,
+                lineHeight: 1, letterSpacing: -1 }}>
+                {val}<span style={{ fontSize: 18, color }}>×</span>
               </div>
-              <div style={{ fontSize: 9, letterSpacing: 3, color: t.eyebrow,
+              <div style={{ fontSize: 8, letterSpacing: 3, color: t.eyebrow,
                 textTransform: "uppercase", marginTop: 3 }}>{label}</div>
             </div>
           ))}
@@ -259,11 +401,11 @@ export function ConsistencyCard({ year, n, monthCounts, dayCounts, t }) {
           textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
           {year} · Your Patterns
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ marginBottom: 24 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+          <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 9, letterSpacing: 3, color: t.eyebrow,
               textTransform: "uppercase", marginBottom: 6 }}>Favourite Day</div>
-            <div style={{ fontSize: 64, fontWeight: 900, color: t.text, lineHeight: 1, letterSpacing: -2 }}>
+            <div style={{ fontSize: 44, fontWeight: 900, color: t.text, lineHeight: 1, letterSpacing: -2 }}>
               {bestDay?.day?.slice(0, 3) ?? "—"}
             </div>
             <div style={{ fontSize: 9, color: t.sub, marginTop: 4 }}>
@@ -330,12 +472,12 @@ export function AllStatsCard({
           borderRadius: "50%", border: `1px solid ${t.a1}15` }} />
 
         {/* Header */}
-        <div style={{ marginBottom: 4 }}>
+        <div style={{ marginBottom: 2 }}>
           <div style={{ fontSize: 6, letterSpacing: 5, color: t.eyebrow,
-            textTransform: "uppercase", marginBottom: 5 }}>Your {year} in Motion</div>
+            textTransform: "uppercase", marginBottom: 4 }}>Your {year} in Motion</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <div style={{ fontSize: 50, fontWeight: 900, color: t.text,
-              lineHeight: 1, letterSpacing: -3 }}>{year}</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: t.text,
+              lineHeight: 1, letterSpacing: -2 }}>{year}</div>
             <div style={{ fontSize: 9, color: t.a1, fontWeight: 600,
               letterSpacing: 0.5, maxWidth: 160, lineHeight: 1.4 }}>{tagline}</div>
           </div>
@@ -449,8 +591,8 @@ function MiniStat({ label, value, color, t }) {
   return (
     <div>
       <div style={{ fontSize: 6, letterSpacing: 2, color: t.eyebrow,
-        textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+        textTransform: "uppercase", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
     </div>
   );
 }

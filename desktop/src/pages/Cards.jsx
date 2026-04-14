@@ -22,7 +22,7 @@ function ThemeSwatch({ theme, active, onClick }) {
       background: "none", border: "none", cursor: "pointer", padding: 0,
     }}>
       <div style={{
-        width: 52, height: 36, borderRadius: 4, overflow: "hidden",
+        width: 48, height: 32, borderRadius: 4, overflow: "hidden",
         background: theme.bg,
         border: active ? `2px solid ${LIME}` : "2px solid transparent",
         boxShadow: active ? `0 0 0 1px ${LIME}` : "0 0 0 1px #2a2a2a",
@@ -38,8 +38,8 @@ function ThemeSwatch({ theme, active, onClick }) {
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: theme.a3 }} />
         </div>
       </div>
-      <span style={{ fontSize: "0.65rem", color: active ? LIME : "var(--sub)",
-        letterSpacing: 1, fontWeight: active ? 700 : 400 }}>
+      <span style={{ fontSize: "0.58rem", color: active ? LIME : "var(--sub)",
+        letterSpacing: 0.5, fontWeight: active ? 700 : 400, maxWidth: 52, textAlign: "center", lineHeight: 1.2 }}>
         {theme.name}
       </span>
     </button>
@@ -148,7 +148,7 @@ export default function Cards() {
       {/* Theme picker */}
       <div className="card" style={{ marginBottom: 24 }}>
         <h2 style={{ marginTop: 0, marginBottom: 16 }}>Theme</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, auto)", gap: "12px 20px",
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(15, auto)", gap: "10px 12px",
           justifyContent: "start" }}>
           {THEMES.map((theme, i) => (
             <ThemeSwatch key={theme.id} theme={theme} active={themeIdx === i}

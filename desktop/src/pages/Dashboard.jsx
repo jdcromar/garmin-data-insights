@@ -1,17 +1,36 @@
 import { useEffect, useState, useCallback } from "react";
-import GridLayout from "react-grid-layout";
+import GridLayout from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { api } from "../api";
 import { WIDGET_REGISTRY } from "../dashboard/widgets";
 import { PRESETS } from "../dashboard/presets";
 
-const STORAGE_KEY = "gd_dashboard_v4";
+const STORAGE_KEY = "gd_dashboard_v6";
 const COLS = 12;
 const ROW_H = 80;
 const GAP  = 12;
 
-const CAT_COLOR = { Metrics: "#c8f135", Charts: "#4a90d9", Health: "#7b61ff", Summaries: "#f39c12" };
+const CAT_COLOR = { Metrics: "#c8f135", Charts: "#4a90d9", Health: "#7b61ff", Summaries: "#f39c12", Running: "#ff6b9d" };
+const LIME = "#c8f135";
+
+// Custom resize handle renderer
+const HANDLE_STYLES = {
+  se: { bottom: 2, right: 2, width: 14, height: 14, cursor: "se-resize", borderRight: `2px solid ${LIME}`, borderBottom: `2px solid ${LIME}` },
+  sw: { bottom: 2, left: 2, width: 14, height: 14, cursor: "sw-resize", borderLeft: `2px solid ${LIME}`, borderBottom: `2px solid ${LIME}` },
+  ne: { top: 2, right: 2, width: 14, height: 14, cursor: "ne-resize", borderRight: `2px solid ${LIME}`, borderTop: `2px solid ${LIME}` },
+  nw: { top: 2, left: 2, width: 14, height: 14, cursor: "nw-resize", borderLeft: `2px solid ${LIME}`, borderTop: `2px solid ${LIME}` },
+  n:  { top: 2, left: "50%", transform: "translateX(-50%)", width: 48, height: 5, cursor: "n-resize", background: `${LIME}aa`, borderRadius: 3 },
+  s:  { bottom: 2, left: "50%", transform: "translateX(-50%)", width: 48, height: 5, cursor: "s-resize", background: `${LIME}aa`, borderRadius: 3 },
+  e:  { right: 2, top: "50%", transform: "translateY(-50%)", width: 5, height: 48, cursor: "e-resize", background: `${LIME}aa`, borderRadius: 3 },
+  w:  { left: 2, top: "50%", transform: "translateY(-50%)", width: 5, height: 48, cursor: "w-resize", background: `${LIME}aa`, borderRadius: 3 },
+};
+
+function renderResizeHandle(axis, ref) {
+  return (
+    <span ref={ref} style={{ position: "absolute", zIndex: 20, boxSizing: "border-box", ...HANDLE_STYLES[axis] }} />
+  );
+}
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
@@ -24,7 +43,14 @@ function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 function makeInitialState() {
   const def = PRESETS.find(p => p.id === "default");
-  return { tabs: [{ id: "t_default", name: "Dashboard", layout: def.layout }], activeTabId: "t_default" };
+  const runner = PRESETS.find(p => p.id === "runner");
+  return {
+    tabs: [
+      { id: "t_default", name: "Dashboard", layout: def.layout },
+      { id: "t_running", name: "Running", layout: runner.layout },
+    ],
+    activeTabId: "t_default",
+  };
 }
 
 // ── Widget renderer ───────────────────────────────────────────────────────────
@@ -99,7 +125,7 @@ export default function Dashboard() {
   // Data
   const [dashData, setDashData] = useState({
     dailyStats: [], activities: [], sleep: [], hrv: [], bodyBattery: [],
-    insights: null, records: null, readiness: null,
+    insights: null, records: null, readiness: null, running: null,
   });
   const [loading,  setLoading]  = useState(true);
   const [syncing,  setSyncing]  = useState(false);
@@ -134,8 +160,9 @@ export default function Dashboard() {
       api.insights().catch(() => null),
       api.records().catch(() => null),
       api.readiness().catch(() => null),
-    ]).then(([dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness]) => {
-      setDashData({ dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness });
+      api.runningDashboard().catch(() => null),
+    ]).then(([dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness, running]) => {
+      setDashData({ dailyStats, activities, sleep, hrv, bodyBattery, insights, records, readiness, running });
       setLoading(false);
     }).catch(e => { setError(e.message); setLoading(false); }),
   []);
@@ -286,6 +313,7 @@ export default function Dashboard() {
             isDraggable={editMode}
             isResizable={editMode}
             resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
+            resizeHandle={editMode ? renderResizeHandle : undefined}
             draggableHandle=".w-drag"
             useCSSTransforms
           >
@@ -342,63 +370,9 @@ export default function Dashboard() {
           border-radius: 4px;
           opacity: 1 !important;
         }
-
-        /* Hide ALL handles outside edit mode */
-        .react-resizable-handle {
-          display: none !important;
-        }
-        /* Show + style ALL handles inside .edit-active */
-        .edit-active .react-resizable-handle {
-          display: block !important;
-          position: absolute !important;
-          background: none !important;
-          background-image: none !important;
-          z-index: 20;
-        }
-        .edit-active .react-resizable-handle::after { content: none !important; }
-
-        /* Corners — L-bracket in lime */
-        .edit-active .react-resizable-handle-se,
-        .edit-active .react-resizable-handle-sw,
-        .edit-active .react-resizable-handle-ne,
-        .edit-active .react-resizable-handle-nw {
-          width: 16px !important; height: 16px !important;
-        }
-        .edit-active .react-resizable-handle-se {
-          bottom: 2px !important; right: 2px !important; cursor: se-resize !important;
-          border-right: 2px solid #c8f135 !important; border-bottom: 2px solid #c8f135 !important;
-        }
-        .edit-active .react-resizable-handle-sw {
-          bottom: 2px !important; left: 2px !important; cursor: sw-resize !important;
-          border-left: 2px solid #c8f135 !important; border-bottom: 2px solid #c8f135 !important;
-        }
-        .edit-active .react-resizable-handle-ne {
-          top: 2px !important; right: 2px !important; cursor: ne-resize !important;
-          border-right: 2px solid #c8f135 !important; border-top: 2px solid #c8f135 !important;
-        }
-        .edit-active .react-resizable-handle-nw {
-          top: 2px !important; left: 2px !important; cursor: nw-resize !important;
-          border-left: 2px solid #c8f135 !important; border-top: 2px solid #c8f135 !important;
-        }
-
-        /* Edge handles — pill bar centered on each edge */
-        .edit-active .react-resizable-handle-n,
-        .edit-active .react-resizable-handle-s {
-          width: 48px !important; height: 5px !important;
-          left: 50% !important; transform: translateX(-50%) !important;
-          background: #c8f135aa !important; border-radius: 3px !important;
-        }
-        .edit-active .react-resizable-handle-n { top: 2px !important; cursor: n-resize !important; }
-        .edit-active .react-resizable-handle-s { bottom: 2px !important; cursor: s-resize !important; }
-        .edit-active .react-resizable-handle-e,
-        .edit-active .react-resizable-handle-w {
-          width: 5px !important; height: 48px !important;
-          top: 50% !important; transform: translateY(-50%) !important;
-          background: #c8f135aa !important; border-radius: 3px !important;
-        }
-        .edit-active .react-resizable-handle-e { right: 2px !important; cursor: e-resize !important; }
-        .edit-active .react-resizable-handle-w { left: 2px !important; cursor: w-resize !important; }
-
+        /* Hide default library handle styling */
+        .react-resizable-handle { background-image: none !important; }
+        .react-resizable-handle::after { content: none !important; }
         .w-drag:active { cursor: grabbing !important; }
       `}</style>
     </div>

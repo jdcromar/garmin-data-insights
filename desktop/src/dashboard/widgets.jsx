@@ -232,7 +232,7 @@ export function StepsChart({ data }) {
       } />
       {plotData.length ? (
         <div style={{ flex: 1, minHeight: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <BarChart data={plotData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={48} />
@@ -261,14 +261,14 @@ export function CaloriesChart({ data }) {
       <WTitle label="Calories" />
       {chartData.length ? (
         <div style={{ flex: 1, minHeight: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <LineChart data={chartData}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={48} />
               <CartesianGrid stroke={ct.gridColor} vertical={false} />
               <Tooltip {...ct.tooltip} labelFormatter={d => new Date(d).toLocaleDateString()} formatter={v => v ? v.toLocaleString() : "—"} />
-              <Line type="monotone" dataKey="Active" stroke={BLUE} dot={false} strokeWidth={1.5} />
-              <Line type="monotone" dataKey="Total" stroke={ORANGE} dot={false} strokeWidth={1.5} />
+              <Line type="monotone" dataKey="Active" stroke={BLUE} dot={false} strokeWidth={1.5} isAnimationActive={false} />
+              <Line type="monotone" dataKey="Total" stroke={ORANGE} dot={false} strokeWidth={1.5} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -290,14 +290,14 @@ export function HrChart({ data }) {
       <WTitle label="Heart Rate" />
       {chartData.length ? (
         <div style={{ flex: 1, minHeight: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <LineChart data={chartData}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={40} />
               <CartesianGrid stroke={ct.gridColor} vertical={false} />
               <Tooltip {...ct.tooltip} labelFormatter={d => new Date(d).toLocaleDateString()} formatter={v => v ? Math.round(v) + " bpm" : "—"} />
-              <Line type="monotone" dataKey="Resting" stroke={RED} dot={false} strokeWidth={1.5} />
-              <Line type="monotone" dataKey="Average" stroke={LIME} dot={false} strokeWidth={1.5} />
+              <Line type="monotone" dataKey="Resting" stroke={RED} dot={false} strokeWidth={1.5} isAnimationActive={false} />
+              <Line type="monotone" dataKey="Average" stroke={LIME} dot={false} strokeWidth={1.5} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -325,7 +325,7 @@ export function YoySteps({ data }) {
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <WTitle label="Year-over-Year · Avg Daily Steps" />
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <BarChart data={chartData} margin={{ top: 18, right: 4, bottom: 0, left: 0 }}>
             <XAxis dataKey="year" tick={ct.axisTick} axisLine={false} tickLine={false} />
             <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={50} />
@@ -495,9 +495,9 @@ export function ActivityBreakdown({ data }) {
       {pieData.length ? (
         <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, minHeight: 0 }}>
           <div style={{ width: "50%", height: "100%" }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={100}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius="35%" outerRadius="72%">
+                <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius="35%" outerRadius="72%" isAnimationActive={false}>
                   {pieData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                 </Pie>
                 <Tooltip {...ct.tooltip} formatter={v => [v, "activities"]} />
@@ -538,7 +538,7 @@ export function LongRunProgression({ data }) {
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <WTitle label="Run Distance Progression" />
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <LineChart data={runs} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
             <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
             <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={45} unit={` ${distUnit}`} />
@@ -602,7 +602,7 @@ export function CumulativeMileage({ data }) {
         </div>
       } />
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" debounce={100}>
           <LineChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
             <XAxis dataKey="doy" tick={ct.axisTick} axisLine={false} tickLine={false} interval={30}
               tickFormatter={doy => new Date(curYear, 0, Number(doy)).toLocaleDateString("en-US", { month: "short" })} />
@@ -685,7 +685,7 @@ export function BodyBatteryChart({ data }) {
       } />
       {chartData.length ? (
         <div style={{ flex: 1, minHeight: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <LineChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               <XAxis dataKey="date" tickFormatter={fmt} tick={ct.axisTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={ct.axisTick} axisLine={false} tickLine={false} width={30} domain={[0, 100]} />
@@ -701,30 +701,50 @@ export function BodyBatteryChart({ data }) {
   );
 }
 
+// ── Running widget imports ────────────────────────────────────────────────────
+
+import {
+  RunWeeklySummary, RunVO2Max, RunRecords, RunWeeklyMileage,
+  RunPaceTrend, RunDynamics, RunTrainingEffect, RunRaces,
+  RunRecentRuns, RunMonthlySummary, RunYearlySummary,
+} from "./running-widgets";
+
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 export const WIDGET_REGISTRY = [
   // Metrics
-  { id: "kpi_steps",     title: "Steps Today",       category: "Metrics",     desc: "Today's step count with 7-day trend",           defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiSteps },
-  { id: "kpi_calories",  title: "Calories",           category: "Metrics",     desc: "Today's calorie burn with trend",               defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiCalories },
-  { id: "kpi_rhr",       title: "Resting HR",         category: "Metrics",     desc: "Latest resting heart rate",                     defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiRhr },
-  { id: "kpi_avg_hr",    title: "Average HR",         category: "Metrics",     desc: "Latest average heart rate",                     defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiAvgHr },
-  { id: "kpi_sleep",     title: "Sleep",              category: "Metrics",     desc: "Last night's sleep duration and score",         defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiSleep },
-  { id: "kpi_hrv",       title: "HRV",                category: "Metrics",     desc: "Last night's HRV reading",                      defaultW: 3,  defaultH: 2, minW: 2, minH: 2, component: KpiHrv },
+  { id: "kpi_steps",     title: "Steps Today",       category: "Metrics",     desc: "Today's step count with 7-day trend",           defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiSteps },
+  { id: "kpi_calories",  title: "Calories",           category: "Metrics",     desc: "Today's calorie burn with trend",               defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiCalories },
+  { id: "kpi_rhr",       title: "Resting HR",         category: "Metrics",     desc: "Latest resting heart rate",                     defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiRhr },
+  { id: "kpi_avg_hr",    title: "Average HR",         category: "Metrics",     desc: "Latest average heart rate",                     defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiAvgHr },
+  { id: "kpi_sleep",     title: "Sleep",              category: "Metrics",     desc: "Last night's sleep duration and score",         defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiSleep },
+  { id: "kpi_hrv",       title: "HRV",                category: "Metrics",     desc: "Last night's HRV reading",                      defaultW: 3,  defaultH: 2, minW: 2, minH: 1, component: KpiHrv },
   // Charts
-  { id: "steps_chart",          title: "Daily Steps",           category: "Charts",      desc: "Bar chart of daily step counts",                    defaultW: 12, defaultH: 5, minW: 5, minH: 3, component: StepsChart },
-  { id: "calories_chart",       title: "Calories Chart",        category: "Charts",      desc: "Active vs total calories over time",                defaultW: 6,  defaultH: 4, minW: 4, minH: 3, component: CaloriesChart },
-  { id: "hr_chart",             title: "Heart Rate Chart",      category: "Charts",      desc: "Resting and average HR over time",                  defaultW: 6,  defaultH: 4, minW: 4, minH: 3, component: HrChart },
-  { id: "yoy_steps",            title: "Year-over-Year Steps",  category: "Charts",      desc: "Average daily steps by year",                       defaultW: 12, defaultH: 4, minW: 5, minH: 3, component: YoySteps },
-  { id: "body_battery_chart",   title: "Body Battery",          category: "Charts",      desc: "Daily body battery high and low",                   defaultW: 6,  defaultH: 4, minW: 4, minH: 3, component: BodyBatteryChart },
-  { id: "long_run_progression", title: "Run Progression",       category: "Charts",      desc: "Running distance over time",                        defaultW: 8,  defaultH: 4, minW: 5, minH: 3, component: LongRunProgression },
-  { id: "cumulative_mileage",   title: "Cumulative Distance",   category: "Charts",      desc: "YTD distance vs same period last year",             defaultW: 12, defaultH: 4, minW: 6, minH: 3, component: CumulativeMileage },
-  { id: "activity_breakdown",   title: "Activity Breakdown",    category: "Charts",      desc: "Pie chart of activity types",                       defaultW: 6,  defaultH: 4, minW: 4, minH: 3, component: ActivityBreakdown },
+  { id: "steps_chart",          title: "Daily Steps",           category: "Charts",      desc: "Bar chart of daily step counts",                    defaultW: 12, defaultH: 4, minW: 4, minH: 2, component: StepsChart },
+  { id: "calories_chart",       title: "Calories Chart",        category: "Charts",      desc: "Active vs total calories over time",                defaultW: 6,  defaultH: 4, minW: 3, minH: 2, component: CaloriesChart },
+  { id: "hr_chart",             title: "Heart Rate Chart",      category: "Charts",      desc: "Resting and average HR over time",                  defaultW: 6,  defaultH: 4, minW: 3, minH: 2, component: HrChart },
+  { id: "yoy_steps",            title: "Year-over-Year Steps",  category: "Charts",      desc: "Average daily steps by year",                       defaultW: 12, defaultH: 4, minW: 4, minH: 2, component: YoySteps },
+  { id: "body_battery_chart",   title: "Body Battery",          category: "Charts",      desc: "Daily body battery high and low",                   defaultW: 6,  defaultH: 4, minW: 3, minH: 2, component: BodyBatteryChart },
+  { id: "long_run_progression", title: "Run Progression",       category: "Charts",      desc: "Running distance over time",                        defaultW: 8,  defaultH: 4, minW: 4, minH: 2, component: LongRunProgression },
+  { id: "cumulative_mileage",   title: "Cumulative Distance",   category: "Charts",      desc: "YTD distance vs same period last year",             defaultW: 12, defaultH: 4, minW: 4, minH: 2, component: CumulativeMileage },
+  { id: "activity_breakdown",   title: "Activity Breakdown",    category: "Charts",      desc: "Pie chart of activity types",                       defaultW: 6,  defaultH: 4, minW: 3, minH: 2, component: ActivityBreakdown },
   // Summaries & Health
-  { id: "readiness_card",    title: "Readiness",          category: "Health",      desc: "Composite readiness score from HRV, sleep, RHR",  defaultW: 6,  defaultH: 3, minW: 4, minH: 3, component: ReadinessCard },
-  { id: "personal_records",  title: "Personal Records",   category: "Health",      desc: "All-time personal bests",                         defaultW: 6,  defaultH: 3, minW: 4, minH: 3, component: PersonalRecordsCard },
-  { id: "weekly_summary",    title: "Weekly Summary",     category: "Summaries",   desc: "Last 7 days at a glance",                         defaultW: 6,  defaultH: 3, minW: 3, minH: 3, component: WeeklySummary },
-  { id: "monthly_summary",   title: "Monthly Summary",    category: "Summaries",   desc: "This month's totals",                             defaultW: 6,  defaultH: 3, minW: 3, minH: 3, component: MonthlySummary },
-  { id: "step_milestones",   title: "Step Milestones",    category: "Summaries",   desc: "Count of 5k / 10k / 20k / 30k step days",        defaultW: 6,  defaultH: 2, minW: 3, minH: 2, component: StepMilestones },
-  { id: "best_performances", title: "Best Performances",  category: "Summaries",   desc: "Top 10 step days, distances, sleep scores",       defaultW: 6,  defaultH: 5, minW: 4, minH: 4, component: BestPerformances },
+  { id: "readiness_card",    title: "Readiness",          category: "Health",      desc: "Composite readiness score from HRV, sleep, RHR",  defaultW: 6,  defaultH: 3, minW: 3, minH: 2, component: ReadinessCard },
+  { id: "personal_records",  title: "Personal Records",   category: "Health",      desc: "All-time personal bests",                         defaultW: 6,  defaultH: 3, minW: 3, minH: 2, component: PersonalRecordsCard },
+  { id: "weekly_summary",    title: "Weekly Summary",     category: "Summaries",   desc: "Last 7 days at a glance",                         defaultW: 6,  defaultH: 3, minW: 2, minH: 2, component: WeeklySummary },
+  { id: "monthly_summary",   title: "Monthly Summary",    category: "Summaries",   desc: "This month's totals",                             defaultW: 6,  defaultH: 3, minW: 2, minH: 2, component: MonthlySummary },
+  { id: "step_milestones",   title: "Step Milestones",    category: "Summaries",   desc: "Count of 5k / 10k / 20k / 30k step days",        defaultW: 6,  defaultH: 2, minW: 2, minH: 1, component: StepMilestones },
+  { id: "best_performances", title: "Best Performances",  category: "Summaries",   desc: "Top 10 step days, distances, sleep scores",       defaultW: 6,  defaultH: 5, minW: 3, minH: 3, component: BestPerformances },
+  // Running
+  { id: "run_weekly",         title: "Run: This Week",        category: "Running",  desc: "Weekly running summary — runs, distance, pace, HR",       defaultW: 4, defaultH: 3, minW: 3, minH: 2, component: RunWeeklySummary },
+  { id: "run_monthly",        title: "Run: This Month",       category: "Running",  desc: "Monthly running totals and averages",                     defaultW: 4, defaultH: 2, minW: 2, minH: 2, component: RunMonthlySummary },
+  { id: "run_yearly",         title: "Run: Year to Date",     category: "Running",  desc: "Year-to-date running totals",                             defaultW: 4, defaultH: 2, minW: 2, minH: 2, component: RunYearlySummary },
+  { id: "run_vo2max",         title: "Run: VO2 Max",          category: "Running",  desc: "Current VO2 max with trend sparkline",                    defaultW: 4, defaultH: 3, minW: 2, minH: 2, component: RunVO2Max },
+  { id: "run_records",        title: "Run: PRs",              category: "Running",  desc: "Fastest mile, 5K, 10K, half, marathon, longest",          defaultW: 4, defaultH: 4, minW: 3, minH: 3, component: RunRecords },
+  { id: "run_mileage",        title: "Run: Weekly Mileage",   category: "Running",  desc: "Bar chart of weekly running distance",                    defaultW: 8, defaultH: 4, minW: 4, minH: 2, component: RunWeeklyMileage },
+  { id: "run_pace_trend",     title: "Run: Pace Trend",       category: "Running",  desc: "Monthly average pace over time",                          defaultW: 6, defaultH: 4, minW: 4, minH: 2, component: RunPaceTrend },
+  { id: "run_dynamics",       title: "Run: Dynamics",          category: "Running",  desc: "Cadence, ground contact, stride, power (30-run avg)",     defaultW: 4, defaultH: 3, minW: 3, minH: 2, component: RunDynamics },
+  { id: "run_training_effect",title: "Run: Training Effects",  category: "Running",  desc: "Distribution of training effect types across runs",       defaultW: 5, defaultH: 4, minW: 3, minH: 3, component: RunTrainingEffect },
+  { id: "run_races",          title: "Run: Races",             category: "Running",  desc: "Race-tagged activities with pace and time",               defaultW: 6, defaultH: 4, minW: 3, minH: 3, component: RunRaces },
+  { id: "run_recent",         title: "Run: Recent Runs",       category: "Running",  desc: "Last 20 runs with distance, pace, HR, training effect",  defaultW: 12, defaultH: 5, minW: 6, minH: 3, component: RunRecentRuns },
 ];
