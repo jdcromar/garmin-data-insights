@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api } from "../api";
 
+const LIME = LIME;
+
 function today()    { return new Date().toISOString().slice(0, 10); }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 
@@ -19,7 +21,7 @@ function StepRow({ label, desc, state }) {
              : state === "error"   ? "✕"
              : state === "running" ? "●"
              : "○";
-  const color = state === "done"    ? "#c8f135"
+  const color = state === "done"    ? LIME
               : state === "error"   ? "#ff4545"
               : state === "running" ? "#4a90d9"
               : "var(--muted)";
@@ -47,8 +49,8 @@ function Check({ checked, onChange, label, sub }) {
     <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", userSelect: "none", padding: "6px 0" }}>
       <div onClick={onChange} style={{
         marginTop: 2, width: 16, height: 16, borderRadius: 3, flexShrink: 0,
-        border: `2px solid ${checked ? "#c8f135" : "var(--border)"}`,
-        background: checked ? "#c8f135" : "transparent",
+        border: `2px solid ${checked ? LIME : "var(--border)"}`,
+        background: checked ? LIME : "transparent",
         display: "flex", alignItems: "center", justifyContent: "center",
         transition: "background 0.12s, border-color 0.12s", cursor: "pointer",
       }}>
@@ -214,7 +216,7 @@ export default function Sync() {
             {/* Progress bar */}
             <div style={{ background: "var(--border)", borderRadius: 4, height: 6, marginBottom: 6 }}>
               <div style={{
-                background: errorMsg ? "#ff4545" : "#c8f135",
+                background: errorMsg ? "#ff4545" : LIME,
                 width: `${pct}%`, height: 6, borderRadius: 4,
                 transition: "width 0.4s ease",
               }} />
@@ -233,7 +235,7 @@ export default function Sync() {
             </div>
 
             {!running && !errorMsg && completed === total && (
-              <p style={{ color: "#c8f135", fontSize: "0.85rem", marginTop: 16 }}>
+              <p style={{ color: LIME, fontSize: "0.85rem", marginTop: 16 }}>
                 ✓ All done — navigate to any page to see updated data.
               </p>
             )}

@@ -148,7 +148,7 @@ export default function Cards() {
       {/* Theme picker */}
       <div className="card" style={{ marginBottom: 24 }}>
         <h2 style={{ marginTop: 0, marginBottom: 16 }}>Theme</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(15, auto)", gap: "10px 12px",
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(42px, auto))", gap: "10px 12px",
           justifyContent: "start" }}>
           {THEMES.map((theme, i) => (
             <ThemeSwatch key={theme.id} theme={theme} active={themeIdx === i}
@@ -163,7 +163,7 @@ export default function Cards() {
       {!loading && !error && computed && (
         <>
           {/* All Stats card + section controls */}
-          <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 32, marginBottom: 32, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: window.innerWidth <= 768 ? "1fr" : "360px 1fr", gap: 24, marginBottom: 32, alignItems: "start" }}>
             <AllStatsCard
               {...sharedProps}
               tagline={computed.tagline}
@@ -214,7 +214,7 @@ export default function Cards() {
 
           {/* Individual cards */}
           <h2 style={{ marginBottom: 16 }}>Individual Cards</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(360px, 100%), 1fr))", gap: 24 }}>
             <HeroCard        {...sharedProps} tagline={computed.tagline} />
             <ActivityCard    {...sharedProps} n={computed.n} dist={computed.dist}
               hrs={computed.hrs} cals={computed.cals} />

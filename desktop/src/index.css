@@ -273,3 +273,105 @@ select:focus { outline: 1px solid var(--lime); }
 /* ── Loading / error ──────────────────────────────────────────────────── */
 .loading { color: var(--sub); padding: 40px 0; }
 .error   { color: var(--red); padding: 40px 0; }
+
+/* ── Mobile responsive ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  :root { --sidebar: 0px; }
+
+  .layout { flex-direction: column; }
+
+  .sidebar { display: none; }
+  .sidebar.open {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 260px;
+    z-index: 1000;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  .mobile-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+  }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .mobile-hamburger {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  h1 { font-size: 1.3rem; margin-bottom: 16px; }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 20px;
+  }
+  .kpi { padding: 16px 14px; }
+  .kpi-value { font-size: 1.4rem; }
+
+  .charts-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card { padding: 16px; margin-bottom: 16px; }
+
+  .scale-grid { grid-template-columns: 1fr; gap: 16px; }
+  .scale-cell .val { font-size: 1.8rem; }
+
+  .record-row .rvalue { font-size: 1.3rem; }
+
+  .wrapped-hero { padding: 32px 0 24px; }
+  .wrapped-hero .year { letter-spacing: -2px; }
+  .section-header { margin: 28px 0 16px; }
+
+  table { font-size: 0.75rem; }
+  th, td { padding: 8px 8px; }
+
+  /* Touch-friendly controls */
+  select, input[type="date"], input[type="number"], input[type="text"] {
+    min-height: 44px;
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+  .btn { min-height: 44px; }
+  .sidebar a { padding: 14px 20px; }
+  .filters { gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  .content { padding: 12px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi { padding: 12px 10px; }
+  .kpi-value { font-size: 1.2rem; }
+  .kpi-label { font-size: 0.55rem; letter-spacing: 2px; }
+}
+
+/* Hide mobile-only elements on desktop */
+@media (min-width: 769px) {
+  .mobile-header  { display: none; }
+  .mobile-overlay { display: none; }
+}

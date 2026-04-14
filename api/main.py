@@ -4,14 +4,18 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from datetime import date, datetime, timedelta
 from typing import Optional
-import sys, os, io, csv, math
+import sys, os, io, csv, json, math
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.database import get_conn, init_db
 from src.auth import get_client
-from src.fetcher import (sync_all, fetch_activities, fetch_daily_stats,
-                         fetch_sleep, fetch_hrv, fetch_body_battery)
+
+# ── Route modules ─────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.dirname(__file__))
+from routes.sync import router as sync_router
+from routes.export import router as export_router
+from routes.running import router as running_router
 
 app = FastAPI()
 
@@ -24,70 +28,12 @@ app.add_middleware(
 
 init_db()
 
-
-# ── Sync ─────────────────────────────────────────────────────────────────────
-
-class SyncRequest(BaseModel):
-    start: date
-    end: date
-    force: bool = False
-
-@app.post("/sync")
-def sync(req: SyncRequest):
-    try:
-        client = get_client()
-        sync_all(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/sync/activities")
-def sync_activities(req: SyncRequest):
-    try:
-        client = get_client()
-        fetch_activities(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/sync/daily-stats")
-def sync_daily_stats(req: SyncRequest):
-    try:
-        client = get_client()
-        fetch_daily_stats(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/sync/sleep")
-def sync_sleep(req: SyncRequest):
-    try:
-        client = get_client()
-        fetch_sleep(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/sync/hrv")
-def sync_hrv(req: SyncRequest):
-    try:
-        client = get_client()
-        fetch_hrv(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/sync/body-battery")
-def sync_body_battery(req: SyncRequest):
-    try:
-        client = get_client()
-        fetch_body_battery(client, req.start, req.end, force=req.force)
-        return {"status": "ok"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+app.include_router(sync_router)
+app.include_router(export_router)
+app.include_router(running_router)
 
 
-# ── Daily Stats ───────────────────────────────────────────────────────────────
+# ── Daily Stats ──────────────────────────────────────────────────────────────
 
 @app.get("/daily-stats")
 def daily_stats():
@@ -99,7 +45,7 @@ def daily_stats():
     return [dict(r) for r in rows]
 
 
-# ── Activities ────────────────────────────────────────────────────────────────
+# ── Activities ───────────────────────────────────────────────────────────────
 
 @app.get("/activities")
 def activities():
@@ -112,7 +58,7 @@ def activities():
     return [dict(r) for r in rows]
 
 
-# ── Sleep ─────────────────────────────────────────────────────────────────────
+# ── Sleep ────────────────────────────────────────────────────────────────────
 
 @app.get("/sleep")
 def sleep():
@@ -124,7 +70,7 @@ def sleep():
     return [dict(r) for r in rows]
 
 
-# ── HRV ───────────────────────────────────────────────────────────────────────
+# ── HRV ──────────────────────────────────────────────────────────────────────
 
 @app.get("/hrv")
 def hrv():
@@ -136,7 +82,7 @@ def hrv():
     return [dict(r) for r in rows]
 
 
-# ── Insights (rolling averages + week-over-week trends) ───────────────────────
+# ── Insights (rolling averages + week-over-week trends) ─────────────────────
 
 @app.get("/insights")
 def insights():
@@ -196,7 +142,7 @@ def insights():
     }
 
 
-# ── Personal Records ──────────────────────────────────────────────────────────
+# ── Personal Records ─────────────────────────────────────────────────────────
 
 @app.get("/records")
 def records():
@@ -233,7 +179,7 @@ def records():
     }
 
 
-# ── Readiness Score ───────────────────────────────────────────────────────────
+# ── Readiness Score ──────────────────────────────────────────────────────────
 
 @app.get("/readiness")
 def readiness():
@@ -257,7 +203,6 @@ def readiness():
     sleep_sc  = [r["score"] for r in sleep_rows]
     hr_vals   = [r["resting_hr"] for r in hr_rows]
 
-    # HRV: compare last night vs 30-day avg (higher is better)
     hrv_score = None
     if len(hrv_vals) >= 2:
         baseline = avg(hrv_vals[1:])
@@ -266,16 +211,14 @@ def readiness():
             ratio = last_night / baseline
             hrv_score = min(100, max(0, round(50 + (ratio - 1) * 200)))
 
-    # Sleep: score directly (0-100 scale from Garmin)
     sleep_score = round(avg(sleep_sc[:3])) if sleep_sc else None
 
-    # RHR: compare recent 3 days vs 14-day avg (lower is better)
     rhr_score = None
     if len(hr_vals) >= 4:
         baseline = avg(hr_vals[3:])
         recent = avg(hr_vals[:3])
         if baseline:
-            ratio = baseline / recent  # >1 means lower RHR = better
+            ratio = baseline / recent
             rhr_score = min(100, max(0, round(50 + (ratio - 1) * 300)))
 
     components = [s for s in [hrv_score, sleep_score, rhr_score] if s is not None]
@@ -295,7 +238,7 @@ def readiness():
     }
 
 
-# ── Goals ─────────────────────────────────────────────────────────────────────
+# ── Goals ────────────────────────────────────────────────────────────────────
 
 class GoalRequest(BaseModel):
     metric: str
@@ -328,7 +271,7 @@ def delete_goal(goal_id: int):
     return {"status": "ok"}
 
 
-# ── Goal Progress (actuals vs targets for current year) ───────────────────────
+# ── Goal Progress ────────────────────────────────────────────────────────────
 
 @app.get("/goals/progress/{year}")
 def goals_progress(year: int):
@@ -338,7 +281,7 @@ def goals_progress(year: int):
             "SELECT steps, active_calories, distance_meters FROM daily_stats WHERE date LIKE ?",
             (f"{year}%",)
         ).fetchall()
-        activities = conn.execute(
+        act = conn.execute(
             "SELECT duration_secs FROM activities WHERE start_time LIKE ?",
             (f"{year}%",)
         ).fetchall()
@@ -347,7 +290,7 @@ def goals_progress(year: int):
     total_cals     = sum(r["active_calories"] or 0 for r in stats)
     total_dist_mi  = sum((r["distance_meters"] or 0) / 1609.344 for r in stats)
     active_days    = sum(1 for r in stats if (r["steps"] or 0) >= 5000)
-    total_hrs      = sum((r["duration_secs"] or 0) / 3600 for r in activities)
+    total_hrs      = sum((r["duration_secs"] or 0) / 3600 for r in act)
 
     actuals = {
         "steps": total_steps,
@@ -367,7 +310,7 @@ def goals_progress(year: int):
     return result
 
 
-# ── Wrapped ───────────────────────────────────────────────────────────────────
+# ── Wrapped ──────────────────────────────────────────────────────────────────
 
 @app.get("/wrapped/{year}")
 def wrapped(year: int):
@@ -390,11 +333,10 @@ def wrapped(year: int):
     }
 
 
-# ── Multi-year Wrapped ────────────────────────────────────────────────────────
+# ── Multi-year Wrapped ───────────────────────────────────────────────────────
 
 @app.get("/wrapped/multi/{years_str}")
 def wrapped_multi(years_str: str):
-    """years_str = comma-separated years e.g. '2024,2025'"""
     try:
         years = [int(y.strip()) for y in years_str.split(",")]
     except ValueError:
@@ -443,43 +385,29 @@ def wrapped_multi(years_str: str):
 
 @app.get("/activities/{activity_id}/route")
 def activity_route(activity_id: str):
-    import json as _json
-    # Return cached track if available
     with get_conn() as conn:
         cached = conn.execute(
             "SELECT track_json FROM activity_tracks WHERE activity_id=?",
             (activity_id,)
         ).fetchone()
         if cached:
-            return _json.loads(cached["track_json"])
+            return json.loads(cached["track_json"])
 
-    # Fetch from Garmin
     try:
         client = get_client()
         details = client.get_activity_details(activity_id, maxpoly=2000)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Garmin fetch failed: {e}")
 
-    # Metric indices (from metricDescriptors):
-    # 0=HR, 2=cumDist(m), 3=speed(m/s), 4=lng, 7=lat, 10=elev(m), 15=timestamp(ms)
-    IDX_HR   = 0
-    IDX_DIST = 2
-    IDX_SPD  = 3
-    IDX_LNG  = 4
-    IDX_LAT  = 7
-    IDX_ELEV = 10
-    IDX_TS   = 15
-
-    # Remap descriptor metricsIndex → position in the values array
     descs = details.get("metricDescriptors", [])
     KEY_IDX = {d["key"]: d["metricsIndex"] for d in descs}
-    IDX_HR   = KEY_IDX.get("directHeartRate",   IDX_HR)
-    IDX_DIST = KEY_IDX.get("sumDistance",        IDX_DIST)
-    IDX_SPD  = KEY_IDX.get("directSpeed",        IDX_SPD)
-    IDX_LNG  = KEY_IDX.get("directLongitude",    IDX_LNG)
-    IDX_LAT  = KEY_IDX.get("directLatitude",     IDX_LAT)
-    IDX_ELEV = KEY_IDX.get("directElevation",    IDX_ELEV)
-    IDX_TS   = KEY_IDX.get("directTimestamp",    IDX_TS)
+    IDX_HR   = KEY_IDX.get("directHeartRate",   0)
+    IDX_DIST = KEY_IDX.get("sumDistance",        2)
+    IDX_SPD  = KEY_IDX.get("directSpeed",        3)
+    IDX_LNG  = KEY_IDX.get("directLongitude",    4)
+    IDX_LAT  = KEY_IDX.get("directLatitude",     7)
+    IDX_ELEV = KEY_IDX.get("directElevation",   10)
+    IDX_TS   = KEY_IDX.get("directTimestamp",    15)
 
     points = []
     for row in details.get("activityDetailMetrics", []):
@@ -490,7 +418,6 @@ def activity_route(activity_id: str):
         lng = v(IDX_LNG)
         if lat is None or lng is None:
             continue
-        # Skip clearly invalid coordinates
         if not (-90 <= lat <= 90 and -180 <= lng <= 180):
             continue
         spd = v(IDX_SPD)
@@ -498,7 +425,7 @@ def activity_route(activity_id: str):
             "lat":   round(lat, 6),
             "lng":   round(lng, 6),
             "hr":    v(IDX_HR),
-            "spd":   round(spd, 3) if spd is not None else None,   # m/s
+            "spd":   round(spd, 3) if spd is not None else None,
             "elev":  round(v(IDX_ELEV), 1) if v(IDX_ELEV) is not None else None,
             "dist":  round(v(IDX_DIST), 1) if v(IDX_DIST) is not None else None,
             "ts":    v(IDX_TS),
@@ -509,7 +436,7 @@ def activity_route(activity_id: str):
     with get_conn() as conn:
         conn.execute(
             "INSERT OR REPLACE INTO activity_tracks(activity_id, track_json) VALUES(?,?)",
-            (activity_id, _json.dumps(result))
+            (activity_id, json.dumps(result))
         )
 
     return result
@@ -527,12 +454,11 @@ def body_battery():
     return [dict(r) for r in rows]
 
 
-# ── Activity locations (for map) ──────────────────────────────────────────────
+# ── Activity locations (for map) ─────────────────────────────────────────────
 
 @app.get("/activities/locations")
 def activity_locations():
     """Return start lat/lng extracted from raw_json for map rendering."""
-    import json as _json
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT activity_id, activity_type, start_time, distance_meters, "
@@ -541,7 +467,7 @@ def activity_locations():
     result = []
     for r in rows:
         try:
-            raw = _json.loads(r["raw_json"])
+            raw = json.loads(r["raw_json"])
             lat = (raw.get("startLatitude") or raw.get("beginLatitude")
                    or raw.get("startLat") or raw.get("latitudeBegin"))
             lng = (raw.get("startLongitude") or raw.get("beginLongitude")
@@ -559,233 +485,3 @@ def activity_locations():
         except Exception:
             pass
     return result
-
-
-# ── CSV Export ────────────────────────────────────────────────────────────────
-
-# ── Running Dashboard ─────────────────────────────────────────────────────────
-
-import json as _json
-
-def _pace_min_per_unit(dist_m, dur_s, unit_m=1609.34):
-    """Convert distance (m) and duration (s) to pace in min per unit (mile/km)."""
-    if not dist_m or dist_m <= 0:
-        return None
-    return (dur_s / 60) / (dist_m / unit_m)
-
-
-@app.get("/running/dashboard")
-def running_dashboard():
-    with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT activity_id, start_time, distance_meters, duration_secs,
-                   avg_hr, max_hr, calories, elevation_gain, raw_json
-            FROM activities WHERE activity_type = 'running'
-            ORDER BY start_time
-        """).fetchall()
-
-    if not rows:
-        return {"runs": [], "weekly_mileage": [], "vo2max_history": [],
-                "records": {}, "weekly_summary": {}, "monthly_summary": {},
-                "yearly_summary": {}, "dynamics_avg": {}, "training_effects": {},
-                "pace_trend": [], "races": [], "recent_runs": []}
-
-    runs = []
-    for r in rows:
-        rj = _json.loads(r["raw_json"]) if r["raw_json"] else {}
-        dist = r["distance_meters"] or 0
-        dur = r["duration_secs"] or 0
-        runs.append({
-            "id": r["activity_id"],
-            "date": r["start_time"],
-            "name": rj.get("activityName", ""),
-            "distance_m": dist,
-            "duration_secs": dur,
-            "pace_min_mi": _pace_min_per_unit(dist, dur, 1609.34),
-            "avg_hr": r["avg_hr"],
-            "max_hr": r["max_hr"],
-            "calories": r["calories"],
-            "elevation_gain": r["elevation_gain"],
-            "vo2max": rj.get("vO2MaxValue"),
-            "aerobic_te": rj.get("aerobicTrainingEffect"),
-            "anaerobic_te": rj.get("anaerobicTrainingEffect"),
-            "te_label": rj.get("trainingEffectLabel"),
-            "training_load": rj.get("activityTrainingLoad"),
-            "cadence": rj.get("averageRunningCadenceInStepsPerMinute"),
-            "ground_contact_time": rj.get("avgGroundContactTime"),
-            "stride_length": rj.get("avgStrideLength"),
-            "vertical_oscillation": rj.get("avgVerticalOscillation"),
-            "vertical_ratio": rj.get("avgVerticalRatio"),
-            "power": rj.get("avgPower"),
-            "event_type": rj.get("eventType", {}).get("typeKey"),
-        })
-
-    # ── Summaries (week / month / year) ────────────────────────────────────
-    from collections import defaultdict
-    now = datetime.now()
-    week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    def summarize(subset):
-        if not subset:
-            return {"runs": 0, "distance_m": 0, "duration_secs": 0,
-                    "avg_pace_min_mi": None, "avg_hr": None, "total_elevation": 0, "total_calories": 0}
-        total_dist = sum(r["distance_m"] for r in subset)
-        total_dur = sum(r["duration_secs"] for r in subset)
-        hrs = [r["avg_hr"] for r in subset if r["avg_hr"]]
-        return {
-            "runs": len(subset),
-            "distance_m": total_dist,
-            "duration_secs": total_dur,
-            "avg_pace_min_mi": _pace_min_per_unit(total_dist, total_dur),
-            "avg_hr": round(sum(hrs) / len(hrs)) if hrs else None,
-            "total_elevation": sum(r["elevation_gain"] or 0 for r in subset),
-            "total_calories": sum(r["calories"] or 0 for r in subset),
-        }
-
-    week_runs = [r for r in runs if datetime.strptime(r["date"], "%Y-%m-%d %H:%M:%S") >= week_start]
-    month_runs = [r for r in runs if datetime.strptime(r["date"], "%Y-%m-%d %H:%M:%S") >= month_start]
-    year_runs = [r for r in runs if datetime.strptime(r["date"], "%Y-%m-%d %H:%M:%S") >= year_start]
-
-    # ── VO2 Max history ────────────────────────────────────────────────────
-    vo2_history = []
-    for r in runs:
-        if r["vo2max"] is not None:
-            vo2_history.append({"date": r["date"][:10], "value": r["vo2max"]})
-    # Deduplicate by date (keep last per day)
-    vo2_by_date = {}
-    for v in vo2_history:
-        vo2_by_date[v["date"]] = v["value"]
-    vo2_history = [{"date": d, "value": v} for d, v in sorted(vo2_by_date.items())]
-
-    # ── Weekly mileage ─────────────────────────────────────────────────────
-    week_buckets = defaultdict(lambda: {"distance_m": 0, "runs": 0, "duration_secs": 0})
-    for r in runs:
-        dt = datetime.strptime(r["date"], "%Y-%m-%d %H:%M:%S")
-        iso_year, iso_week, _ = dt.isocalendar()
-        key = f"{iso_year}-W{iso_week:02d}"
-        week_buckets[key]["distance_m"] += r["distance_m"]
-        week_buckets[key]["runs"] += 1
-        week_buckets[key]["duration_secs"] += r["duration_secs"]
-    weekly_mileage = [{"week": k, **v} for k, v in sorted(week_buckets.items())]
-
-    # ── Pace trend (monthly avg) ───────────────────────────────────────────
-    month_pace = defaultdict(lambda: {"dist": 0, "dur": 0})
-    for r in runs:
-        key = r["date"][:7]
-        month_pace[key]["dist"] += r["distance_m"]
-        month_pace[key]["dur"] += r["duration_secs"]
-    pace_trend = [{"month": k, "avg_pace_min_mi": _pace_min_per_unit(v["dist"], v["dur"])}
-                  for k, v in sorted(month_pace.items()) if v["dist"] > 0]
-
-    # ── Records ────────────────────────────────────────────────────────────
-    dist_brackets = [
-        ("fastest_mile",   1609.34 * 0.8,  1609.34 * 1.2),
-        ("fastest_5k",     5000 * 0.9,     5000 * 1.1),
-        ("fastest_10k",    10000 * 0.9,    10000 * 1.15),
-        ("fastest_half",   21097 * 0.9,    21097 * 1.1),
-        ("fastest_marathon", 42195 * 0.9,  42195 * 1.1),
-    ]
-    records = {}
-    for label, lo, hi in dist_brackets:
-        bracket = [r for r in runs if lo <= r["distance_m"] <= hi and r["pace_min_mi"]]
-        if bracket:
-            best = min(bracket, key=lambda r: r["pace_min_mi"])
-            records[label] = {
-                "pace_min_mi": round(best["pace_min_mi"], 2),
-                "distance_m": best["distance_m"],
-                "duration_secs": best["duration_secs"],
-                "date": best["date"][:10],
-                "id": best["id"],
-            }
-    # Longest run
-    longest = max(runs, key=lambda r: r["distance_m"])
-    records["longest_run"] = {
-        "distance_m": longest["distance_m"],
-        "duration_secs": longest["duration_secs"],
-        "date": longest["date"][:10],
-        "id": longest["id"],
-    }
-    # Fastest pace (any distance, min 1km)
-    valid_pace = [r for r in runs if r["pace_min_mi"] and r["distance_m"] >= 1000]
-    if valid_pace:
-        fastest = min(valid_pace, key=lambda r: r["pace_min_mi"])
-        records["fastest_pace"] = {
-            "pace_min_mi": round(fastest["pace_min_mi"], 2),
-            "distance_m": fastest["distance_m"],
-            "date": fastest["date"][:10],
-            "id": fastest["id"],
-        }
-
-    # ── Running dynamics averages (last 30 runs) ──────────────────────────
-    recent = [r for r in runs[-30:] if r["cadence"]]
-    dyn_keys = ["cadence", "ground_contact_time", "stride_length",
-                "vertical_oscillation", "vertical_ratio", "power"]
-    dynamics_avg = {}
-    for k in dyn_keys:
-        vals = [r[k] for r in recent if r[k] is not None]
-        dynamics_avg[k] = round(sum(vals) / len(vals), 1) if vals else None
-
-    # ── Training effect distribution ───────────────────────────────────────
-    te_counts = defaultdict(int)
-    for r in runs:
-        if r["te_label"]:
-            te_counts[r["te_label"]] += 1
-    training_effects = dict(te_counts)
-
-    # ── Races ──────────────────────────────────────────────────────────────
-    races = [
-        {
-            "id": r["id"], "date": r["date"][:10], "name": r["name"],
-            "distance_m": r["distance_m"], "duration_secs": r["duration_secs"],
-            "pace_min_mi": r["pace_min_mi"], "avg_hr": r["avg_hr"],
-        }
-        for r in runs if r["event_type"] == "race"
-    ]
-
-    return {
-        "weekly_summary": summarize(week_runs),
-        "monthly_summary": summarize(month_runs),
-        "yearly_summary": summarize(year_runs),
-        "vo2max_history": vo2_history,
-        "current_vo2max": vo2_history[-1]["value"] if vo2_history else None,
-        "weekly_mileage": weekly_mileage,
-        "pace_trend": pace_trend,
-        "records": records,
-        "dynamics_avg": dynamics_avg,
-        "training_effects": training_effects,
-        "races": races,
-        "recent_runs": [
-            {k: v for k, v in r.items() if k != "event_type"}
-            for r in runs[-20:][::-1]
-        ],
-        "total_runs": len(runs),
-    }
-
-
-ALLOWED_TABLES = {"activities", "daily_stats", "sleep", "hrv", "body_battery"}
-
-@app.get("/export/csv/{table}")
-def export_csv(table: str):
-    if table not in ALLOWED_TABLES:
-        raise HTTPException(status_code=400, detail=f"Unknown table '{table}'")
-
-    with get_conn() as conn:
-        rows = conn.execute(f"SELECT * FROM {table} ORDER BY rowid").fetchall()
-
-    if not rows:
-        raise HTTPException(status_code=404, detail="No data")
-
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=rows[0].keys())
-    writer.writeheader()
-    for row in rows:
-        writer.writerow({k: v for k, v in dict(row).items() if k != "raw_json"})
-
-    output.seek(0)
-    return StreamingResponse(
-        io.BytesIO(output.getvalue().encode()),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={table}.csv"},
-    )

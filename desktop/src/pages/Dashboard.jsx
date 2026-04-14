@@ -5,11 +5,18 @@ import "react-resizable/css/styles.css";
 import { api } from "../api";
 import { WIDGET_REGISTRY } from "../dashboard/widgets";
 import { PRESETS } from "../dashboard/presets";
+import ErrorBoundary from "../ErrorBoundary";
 
-const STORAGE_KEY = "gd_dashboard_v6";
-const COLS = 12;
+const STORAGE_KEY = "gd_dashboard";
+const SCHEMA_VERSION = 7;
+const COLS_DESKTOP = 12;
+const COLS_MOBILE  = 4;
 const ROW_H = 80;
 const GAP  = 12;
+
+function useCols(width) {
+  return width < 600 ? COLS_MOBILE : COLS_DESKTOP;
+}
 
 const CAT_COLOR = { Metrics: "#c8f135", Charts: "#4a90d9", Health: "#7b61ff", Summaries: "#f39c12", Running: "#ff6b9d" };
 const LIME = "#c8f135";
@@ -34,10 +41,45 @@ function renderResizeHandle(axis, ref) {
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
-function loadState() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+function migrateState(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  let state = raw;
+  let version = state._version || 0;
+
+  // Migration: pre-versioned states (v6 key) had no _version
+  if (!state._version && state.tabs) version = 6;
+
+  // Future migrations go here:
+  // if (version < 8) { state = ...; version = 8; }
+
+  if (version < SCHEMA_VERSION) return null; // incompatible — reset
+  return state;
 }
-function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+function loadState() {
+  try {
+    // Try current key first
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw) return migrateState(raw);
+    // Try migrating from old versioned keys
+    for (let v = SCHEMA_VERSION - 1; v >= 4; v--) {
+      const old = JSON.parse(localStorage.getItem(`gd_dashboard_v${v}`) || "null");
+      if (old) {
+        const migrated = migrateState(old);
+        if (migrated) {
+          saveState(migrated);
+          localStorage.removeItem(`gd_dashboard_v${v}`);
+          return migrated;
+        }
+      }
+    }
+    return null;
+  } catch { return null; }
+}
+
+function saveState(s) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, _version: SCHEMA_VERSION }));
+}
 function uid() { return "t_" + Math.random().toString(36).slice(2, 9); }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
@@ -59,7 +101,13 @@ function WidgetRenderer({ id, data }) {
   const def = WIDGET_REGISTRY.find(w => w.id === id);
   if (!def) return <div style={{ color: "var(--muted)", fontSize: "0.8rem", padding: 12 }}>Unknown widget: {id}</div>;
   const C = def.component;
-  return <C data={data} />;
+  return (
+    <ErrorBoundary fallback={
+      <div style={{ color: "var(--red)", fontSize: "0.8rem", padding: 12 }}>Widget failed to render</div>
+    }>
+      <C data={data} />
+    </ErrorBoundary>
+  );
 }
 
 // ── Library panel ─────────────────────────────────────────────────────────────
@@ -70,7 +118,8 @@ function LibraryPanel({ onAdd, onClose, presentIds }) {
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 900 }} />
       <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, width: 300,
+        position: "fixed", top: 0, right: 0, bottom: 0,
+        width: window.innerWidth <= 768 ? "100%" : 300,
         background: "var(--surface)", borderLeft: "1px solid var(--border)",
         zIndex: 901, overflowY: "auto", display: "flex", flexDirection: "column",
       }}>
@@ -100,9 +149,9 @@ function LibraryPanel({ onAdd, onClose, presentIds }) {
                       <button onClick={() => !added && onAdd(w.id)} disabled={added}
                         style={{
                           padding: "4px 10px", borderRadius: 4, flexShrink: 0,
-                          border: `1px solid ${added ? "var(--border)" : "#c8f135"}`,
-                          background: added ? "transparent" : "#c8f13518",
-                          color: added ? "var(--muted)" : "#c8f135",
+                          border: `1px solid ${added ? "var(--border)" : LIME}`,
+                          background: added ? "transparent" : `${LIME}18`,
+                          color: added ? "var(--muted)" : LIME,
                           cursor: added ? "default" : "pointer", fontSize: "0.7rem", fontWeight: 600,
                         }}>
                         {added ? "Added" : "+ Add"}
@@ -129,6 +178,7 @@ export default function Dashboard() {
   });
   const [loading,  setLoading]  = useState(true);
   const [syncing,  setSyncing]  = useState(false);
+  const [syncCooldown, setSyncCooldown] = useState(false);
   const [error,    setError]    = useState(null);
 
   // Layout
@@ -170,9 +220,14 @@ export default function Dashboard() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function syncToday() {
+    if (syncCooldown) return;
     setSyncing(true);
-    try { await api.sync(todayStr(), todayStr()); await fetchAll(); }
-    finally { setSyncing(false); }
+    try {
+      await api.sync(todayStr(), todayStr());
+      await fetchAll();
+      setSyncCooldown(true);
+      setTimeout(() => setSyncCooldown(false), 30000);
+    } finally { setSyncing(false); }
   }
 
   // Tab management
@@ -220,17 +275,18 @@ export default function Dashboard() {
   if (error) return <p className="error">Error: {error}</p>;
 
   const presentIds = activeTab.layout.map(l => l.i);
+  const cols = useCols(gridW);
 
   return (
     <div>
       {/* ── Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <h1 style={{ margin: 0 }}>Dashboard</h1>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {!editMode && (
-            <button className="btn" onClick={syncToday} disabled={syncing}
+            <button className="btn" onClick={syncToday} disabled={syncing || syncCooldown}
               style={{ fontSize: "0.8rem", padding: "7px 18px" }}>
-              {syncing ? "Syncing…" : "Sync Today"}
+              {syncing ? "Syncing…" : syncCooldown ? "Synced" : "Sync Today"}
             </button>
           )}
           {editMode && (
@@ -242,15 +298,15 @@ export default function Dashboard() {
               </select>
               <button onClick={() => setShowLib(l => !l)}
                 style={{ padding: "7px 14px", borderRadius: 4, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
-                  border: "1px solid #c8f135", background: showLib ? "#c8f13522" : "transparent", color: "#c8f135" }}>
+                  border: `1px solid ${LIME}`, background: showLib ? `${LIME}22` : "transparent", color: LIME }}>
                 + Add Widget
               </button>
             </>
           )}
           <button onClick={() => { setEditMode(e => !e); setShowLib(false); }}
             style={{ padding: "7px 16px", borderRadius: 4, fontSize: "0.8rem", cursor: "pointer", fontWeight: editMode ? 700 : 400,
-              border: `1px solid ${editMode ? "#c8f135" : "var(--border)"}`,
-              background: editMode ? "#c8f135" : "transparent",
+              border: `1px solid ${editMode ? LIME : "var(--border)"}`,
+              background: editMode ? LIME : "transparent",
               color: editMode ? "#000" : "var(--sub)" }}>
             {editMode ? "✓ Done" : "Edit Layout"}
           </button>
@@ -258,7 +314,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Tab bar ── */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 0 }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 0, overflowX: "auto" }}>
         {state.tabs.map(tab => (
           <div key={tab.id} style={{ display: "flex", alignItems: "center", position: "relative" }}>
             <button onClick={() => setState(s => ({ ...s, activeTabId: tab.id }))}
@@ -304,7 +360,7 @@ export default function Dashboard() {
         {gridW > 0 && (
           <GridLayout
             layout={activeTab.layout}
-            cols={COLS}
+            cols={cols}
             rowHeight={ROW_H}
             width={gridW}
             margin={[GAP, GAP]}

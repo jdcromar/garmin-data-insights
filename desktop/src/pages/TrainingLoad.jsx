@@ -156,7 +156,7 @@ export default function TrainingLoad() {
             key={d}
             onClick={() => setDays(d || series.length)}
             style={{
-              background: days === (d || series.length) ? "#c8f135" : "var(--surface)",
+              background: days === (d || series.length) ? "var(--lime)" : "var(--surface)",
               color:       days === (d || series.length) ? "#000"    : "var(--text)",
               border: "1px solid var(--border)", borderRadius: 4,
               padding: "5px 12px", fontSize: "0.8rem", cursor: "pointer",

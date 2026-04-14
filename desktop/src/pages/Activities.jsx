@@ -74,7 +74,7 @@ export default function Activities() {
 
       <div className="kpi-grid">
         <div className="kpi"><div className="kpi-label">Activities</div><div className="kpi-value">{filtered.length.toLocaleString()}</div></div>
-        <div className="kpi"><div className="kpi-label">Total Distance</div><div className="kpi-value" style={{ color: "#c8f135" }}>{totalDist.toFixed(1)} <span style={{ fontSize: "1rem", color: "var(--muted)" }}>{distUnit}</span></div></div>
+        <div className="kpi"><div className="kpi-label">Total Distance</div><div className="kpi-value" style={{ color: "var(--lime)" }}>{totalDist.toFixed(1)} <span style={{ fontSize: "1rem", color: "var(--muted)" }}>{distUnit}</span></div></div>
         <div className="kpi"><div className="kpi-label">Total Time</div><div className="kpi-value">{totalHrs.toFixed(1)} <span style={{ fontSize: "1rem", color: "var(--muted)" }}>hrs</span></div></div>
         <div className="kpi"><div className="kpi-label">Calories</div><div className="kpi-value" style={{ color: "#ff4545" }}>{totalCals.toLocaleString()}</div></div>
       </div>

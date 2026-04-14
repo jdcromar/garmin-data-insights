@@ -61,7 +61,7 @@ export function RunWeeklySummary({ data }) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <WTitle label="This Week" />
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, alignContent: "center", minHeight: 0 }}>
+      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8, alignContent: "center", minHeight: 0 }}>
         {stats.map(s => (
           <div key={s.label} style={{ textAlign: "center" }}>
             <div style={{ fontSize: "0.55rem", color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>{s.label}</div>
@@ -236,7 +236,7 @@ export function RunDynamics({ data }) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <WTitle label="Running Dynamics" right={<span style={{ fontSize: "0.55rem", color: "var(--muted)" }}>30-run avg</span>} />
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, alignContent: "center", minHeight: 0 }}>
+      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8, alignContent: "center", minHeight: 0 }}>
         {metrics.map(m => (
           <div key={m.label} style={{ textAlign: "center" }}>
             <div style={{ fontSize: "0.5rem", color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</div>

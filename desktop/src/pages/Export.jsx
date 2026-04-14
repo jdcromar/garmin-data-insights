@@ -11,23 +11,32 @@ const TABLES = [
   { key: "body_battery", label: "Body Battery", desc: "Daily high, low, charged, and drained body battery values" },
 ];
 
+const FORMATS = [
+  { id: "csv",  label: "CSV",   ext: "csv",  icon: "📄" },
+  { id: "json", label: "JSON",  ext: "json", icon: "{ }" },
+  { id: "xlsx", label: "Excel", ext: "xlsx", icon: "📊" },
+];
+
 export default function Export() {
+  const [format, setFormat]         = useState("csv");
   const [downloading, setDownloading] = useState({});
   const [done, setDone]               = useState({});
+
+  const fmt = FORMATS.find(f => f.id === format);
 
   async function download(table) {
     setDownloading(d => ({ ...d, [table]: true }));
     setDone(d => ({ ...d, [table]: false }));
 
     try {
-      const url = api.exportCsv(table);
+      const url = api.exportUrl(table, format);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `${table}.csv`;
+      a.download = `${table}.${fmt.ext}`;
       a.click();
       URL.revokeObjectURL(blobUrl);
       setDone(d => ({ ...d, [table]: true }));
@@ -37,13 +46,54 @@ export default function Export() {
     }
   }
 
+  async function downloadAll() {
+    for (const t of TABLES) {
+      await download(t.key);
+    }
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: 8 }}>Export Data</h1>
-      <p style={{ color: "var(--sub)", marginBottom: 32, fontSize: "0.9rem" }}>
-        Download your Garmin data as CSV files for use in Excel, Google Sheets, or any analysis tool.
+      <p style={{ color: "var(--sub)", marginBottom: 24, fontSize: "0.9rem" }}>
+        Download your Garmin data for use in Excel, Google Sheets, or any analysis tool.
       </p>
 
+      {/* Format picker */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
+        <span style={{ fontSize: "0.8rem", color: "var(--sub)", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
+          Format
+        </span>
+        <div style={{ display: "flex", gap: 6 }}>
+          {FORMATS.map(f => {
+            const active = f.id === format;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setFormat(f.id)}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 4,
+                  border: `1px solid ${active ? LIME : "var(--border)"}`,
+                  background: active ? LIME + "18" : "transparent",
+                  color: active ? LIME : "var(--sub)",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}>
+                <span style={{ fontSize: "0.75rem" }}>{f.icon}</span>
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Table cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         {TABLES.map(t => {
           const isDownloading = downloading[t.key];
@@ -78,11 +128,31 @@ export default function Export() {
                 }}>
                 {isDownloading && <Spinner />}
                 {isDone       && "✓ "}
-                {isDownloading ? "Downloading…" : isDone ? "Downloaded!" : `Download ${t.label}.csv`}
+                {isDownloading ? "Downloading…" : isDone ? "Downloaded!" : `Download .${fmt.ext}`}
               </button>
             </div>
           );
         })}
+      </div>
+
+      {/* Download All */}
+      <div style={{ marginTop: 24 }}>
+        <button
+          onClick={downloadAll}
+          style={{
+            background: "transparent",
+            border: `1px solid var(--border)`,
+            color: "var(--sub)",
+            borderRadius: 4,
+            padding: "10px 24px",
+            cursor: "pointer",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            letterSpacing: 1,
+            transition: "all 0.2s",
+          }}>
+          Download All as .{fmt.ext}
+        </button>
       </div>
 
       <div style={{ marginTop: 40, padding: "20px 0", borderTop: "1px solid var(--border)",

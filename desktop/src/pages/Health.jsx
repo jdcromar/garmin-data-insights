@@ -176,9 +176,9 @@ export default function Health() {
 
       {sleepFiltered.length > 0 && <>
         <div className="kpi-grid">
-          <div className="kpi"><div className="kpi-label">Avg Sleep</div><div className="kpi-value" style={{color:"#7b61ff"}}>{avgSleep} <span style={{fontSize:"1rem",color:"#555"}}>hrs</span></div></div>
+          <div className="kpi"><div className="kpi-label">Avg Sleep</div><div className="kpi-value" style={{color:"#7b61ff"}}>{avgSleep} <span style={{fontSize:"1rem",color:"var(--muted)"}}>hrs</span></div></div>
           <div className="kpi"><div className="kpi-label">Avg Sleep Score</div><div className="kpi-value">{avgScore}</div></div>
-          <div className="kpi"><div className="kpi-label">Avg REM</div><div className="kpi-value" style={{color:"#4a90d9"}}>{avgRem} <span style={{fontSize:"1rem",color:"#555"}}>hrs</span></div></div>
+          <div className="kpi"><div className="kpi-label">Avg REM</div><div className="kpi-value" style={{color:"#4a90d9"}}>{avgRem} <span style={{fontSize:"1rem",color:"var(--muted)"}}>hrs</span></div></div>
         </div>
 
         <div className="card">
@@ -212,8 +212,8 @@ export default function Health() {
 
       {hrvFiltered.length > 0 && <>
         <div className="kpi-grid" style={{marginTop:32}}>
-          <div className="kpi"><div className="kpi-label">Avg Weekly HRV</div><div className="kpi-value">{avgWeeklyHrv} <span style={{fontSize:"1rem",color:"#555"}}>ms</span></div></div>
-          <div className="kpi"><div className="kpi-label">Avg Last Night HRV</div><div className="kpi-value" style={{color:"#c8f135"}}>{avgNightHrv} <span style={{fontSize:"1rem",color:"#555"}}>ms</span></div></div>
+          <div className="kpi"><div className="kpi-label">Avg Weekly HRV</div><div className="kpi-value">{avgWeeklyHrv} <span style={{fontSize:"1rem",color:"var(--muted)"}}>ms</span></div></div>
+          <div className="kpi"><div className="kpi-label">Avg Last Night HRV</div><div className="kpi-value" style={{color:"var(--lime)"}}>{avgNightHrv} <span style={{fontSize:"1rem",color:"var(--muted)"}}>ms</span></div></div>
         </div>
 
         <div className="card">
